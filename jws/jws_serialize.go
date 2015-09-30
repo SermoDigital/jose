@@ -11,7 +11,6 @@ func (j *JWS) Flat(key interface{}) ([]byte, error) {
 	if len(j.sb) < 1 {
 		return nil, ErrNotEnoughMethods
 	}
-
 	if err := j.sign(key); err != nil {
 		return nil, err
 	}
@@ -26,6 +25,10 @@ func (j *JWS) Flat(key interface{}) ([]byte, error) {
 
 // General serializes the JWS into its "general" form per
 // https://tools.ietf.org/html/rfc7515#section-7.2.1
+//
+// If only one key is passed it's used for all the provided
+// SigningMethods. Otherwise, len(keys) must equal the number
+// of SigningMethods added.
 func (j *JWS) General(keys ...interface{}) ([]byte, error) {
 	if err := j.sign(keys...); err != nil {
 		return nil, err
@@ -67,13 +70,26 @@ func (j *JWS) sign(keys ...interface{}) error {
 		return err
 	}
 
+	if len(keys) < 1 ||
+		len(keys) > 1 && len(keys) != len(j.sb) {
+		return ErrNotEnoughKeys
+	}
+
+	if len(keys) == 1 {
+		k := keys[0]
+		keys = make([]interface{}, len(j.sb))
+		for i := range keys {
+			keys[i] = k
+		}
+	}
+
 	for i := range j.sb {
 		if err := j.sb[i].cache(); err != nil {
 			return err
 		}
 
 		raw := format(j.sb[i].Protected, j.plcache)
-		sig, err := j.methods[i].Sign(raw, keys[i])
+		sig, err := j.sb[i].method.Sign(raw, keys[i])
 		if err != nil {
 			return err
 		}

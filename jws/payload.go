@@ -43,6 +43,7 @@ func (p *payload) UnmarshalJSON(b []byte) error {
 		p.v = p.u
 		return err
 	}
+
 	return json.Unmarshal(b2, &p.v)
 }
 

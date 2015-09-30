@@ -47,6 +47,30 @@ func (h Header) Base64() ([]byte, error) {
 	return h.MarshalJSON()
 }
 
+// UnmarshalJSON implements json.Unmarshaler for Header.
+func (h *Header) UnmarshalJSON(b []byte) error {
+	if b == nil {
+		return nil
+	}
+
+	b, err := DecodeEscaped(b)
+	if err != nil {
+		return err
+	}
+
+	// Since json.Unmarshal calls UnmarshalJSON,
+	// calling json.Unmarshal on *p would be infinitely recursive
+	// A temp variable is needed because &map[string]interface{}(*p) is
+	// invalid Go.
+
+	tmp := map[string]interface{}(*h)
+	if err = json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	*h = Header(tmp)
+	return nil
+}
+
 // Protected Headers are base64-encoded after they're marshaled into
 // JSON.
 type Protected Header
@@ -96,20 +120,9 @@ func (p Protected) Base64() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler for Protected.
 func (p *Protected) UnmarshalJSON(b []byte) error {
-	b, err := DecodeEscaped(b)
-	if err != nil {
-		return err
-	}
-
-	// Since json.Unmarshal calls UnmarshalJSON,
-	// calling json.Unmarshal on *p would be infinitely recursive
-	// A temp variable is needed because &Header(*p) is invalid Go.
-
-	tmp := map[string]interface{}(*p)
-	if err = json.Unmarshal(b, &tmp); err != nil {
-		return err
-	}
-	*p = Protected(tmp)
+	var h Header
+	h.UnmarshalJSON(b)
+	*p = Protected(h)
 	return nil
 }
 

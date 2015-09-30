@@ -9,11 +9,15 @@ import (
 )
 
 var dataRaw = struct {
+	H      jose.Protected
 	Name   string
 	Scopes []string
 	Admin  bool
 	Data   struct{ Foo, Bar int }
 }{
+	H: jose.Protected{
+		"1234": "5678",
+	},
 	Name: "Eric",
 	Scopes: []string{
 		"user.account.info",

@@ -1,8 +1,9 @@
 package jws
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"sort"
 
 	"github.com/SermoDigital/jose"
 )
@@ -13,8 +14,7 @@ type JWS struct {
 	plcache rawBase64
 	clean   bool
 
-	sb      []sigHead
-	methods []SigningMethod
+	sb []sigHead
 }
 
 // sigHead represents the 'signatures' member of the JWS' "general"
@@ -31,6 +31,18 @@ type sigHead struct {
 	protected   jose.Protected `json:"-"`
 	unprotected jose.Header    `json:"-"`
 	clean       bool           `json:"-"`
+
+	method SigningMethod
+}
+
+func (s *sigHead) unmarshal() error {
+	if err := s.protected.UnmarshalJSON(s.Protected); err != nil {
+		return err
+	}
+	if err := s.unprotected.UnmarshalJSON(s.Unprotected); err != nil {
+		return err
+	}
+	return nil
 }
 
 // New creates a new JWS with the provided SigningMethods.
@@ -41,14 +53,29 @@ func New(content interface{}, methods ...SigningMethod) *JWS {
 			protected: jose.Protected{
 				"alg": methods[i].Alg(),
 			},
-			unprotected: make(jose.Header),
+			unprotected: jose.Header{},
+			method:      methods[i],
 		}
 	}
 	return &JWS{
 		payload: &payload{v: content},
 		sb:      sb,
-		methods: methods,
 	}
+}
+
+func (s *sigHead) assignMethod(p jose.Protected) error {
+	alg, ok := p.Get("alg").(string)
+	if !ok {
+		return ErrNoAlgorithm
+	}
+
+	sm := GetSigningMethod(alg)
+	if sm == nil {
+		return ErrNoAlgorithm
+	}
+
+	s.method = sm
+	return nil
 }
 
 type generic struct {
@@ -61,13 +88,9 @@ type generic struct {
 // JWS per https://tools.ietf.org/html/rfc7515#section-5.2
 //
 // It accepts a json.Unmarshaler in order to properly parse
-// the payload. The reason for this is sometimes the payload
-// might implement the json.Marshaler interface, and since
-// the JWS' payload member is an interface{}, a simple
-// json.Unmarshal call cannot magically identify the original
-// type. So, in order to keep the caller from having to do extra
-// parsing of the payload, the a json.Unmarshaler can be passed
-// which will be called to unmarshal the payload however the caller
+// the payload. In order to keep the caller from having to do extra
+// parsing of the payload, a json.Unmarshaler can be passed
+// which will be then to unmarshal the payload however the caller
 // wishes. Do note that if json.Unmarshal returns an error the
 // original payload will be used as if no json.Unmarshaler was
 // passed.
@@ -109,29 +132,36 @@ func ParseGeneral(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 
 func (g *generic) parseGeneral(u ...json.Unmarshaler) (*JWS, error) {
 
-	var (
-		p   payload
-		err error
-	)
-
+	var p payload
 	if len(u) > 0 {
-		if k := u[0]; k.UnmarshalJSON(g.Payload) != nil {
-			p.v = u
-			err = ErrCouldNotUnmarshal
-		}
+		p.u = u[0]
 	}
 
-	if err != nil {
-		fmt.Println(string(g.Payload))
-		if err := json.Unmarshal(g.Payload, &p); err != nil {
+	if err := p.UnmarshalJSON(g.Payload); err != nil {
+		return nil, err
+	}
+
+	for i := range g.Signatures {
+		if err := g.Signatures[i].unmarshal(); err != nil {
 			return nil, err
 		}
+		if err := checkHeaders(jose.Header(g.Signatures[i].protected), g.Signatures[i].unprotected); err != nil {
+			return nil, err
+		}
+
+		if err := g.Signatures[i].assignMethod(g.Signatures[i].protected); err != nil {
+			return nil, err
+		}
+
+		g.clean = true
 	}
 
 	return &JWS{
 		payload: &p,
+		plcache: g.Payload,
+		clean:   true,
 		sb:      g.Signatures,
-	}, err
+	}, nil
 }
 
 // ParseFlat parses a JWS serialized into its "flat" form per
@@ -159,8 +189,23 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
 		return nil, err
 	}
 
+	if err := g.sigHead.unmarshal(); err != nil {
+		return nil, err
+	}
+	g.sigHead.clean = true
+
+	if err := checkHeaders(jose.Header(g.sigHead.protected), g.sigHead.unprotected); err != nil {
+		return nil, err
+	}
+
+	if err := g.sigHead.assignMethod(g.sigHead.protected); err != nil {
+		return nil, err
+	}
+
 	return &JWS{
 		payload: &p,
+		plcache: g.Payload,
+		clean:   true,
 		sb:      []sigHead{g.sigHead},
 	}, nil
 }
@@ -168,8 +213,136 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
 // ParseCompact parses a JWS serialized into its "compact" form per
 // https://tools.ietf.org/html/rfc7515#section-7.1
 // into a physical JWS per
-// https://tools.ietf.org/html/rfc7515#section-5.2//
+// https://tools.ietf.org/html/rfc7515#section-5.2
+//
 // For information on the json.Unmarshaler parameter, see Parse.
 func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
-	return nil, nil
+
+	parts := bytes.Split(encoded, []byte{'.'})
+	if len(parts) != 3 {
+		return nil, ErrNotCompact
+	}
+
+	var p jose.Protected
+	if err := p.UnmarshalJSON(parts[0]); err != nil {
+		return nil, err
+	}
+
+	s := sigHead{
+		protected: p,
+		clean:     true,
+	}
+
+	if err := s.assignMethod(p); err != nil {
+		return nil, err
+	}
+
+	j := JWS{
+		payload: &payload{},
+		sb:      []sigHead{s},
+	}
+
+	if err := j.payload.UnmarshalJSON(parts[1]); err != nil {
+		return nil, err
+	}
+
+	j.clean = true
+
+	if err := j.sb[0].Signature.UnmarshalJSON(parts[2]); err != nil {
+		return nil, err
+	}
+
+	return &j, nil
+}
+
+// IgnoreDupes should be set to true if the internal duplicate header key check
+// should ignore duplicate Header keys instead of reporting an error when
+// duplicate Header keys are found.
+//
+// Note: Duplicate Header keys are defined in
+// https://tools.ietf.org/html/rfc7515#section-5.2
+// meaning keys that both the protected and unprotected
+// Headers possess.
+var IgnoreDupes bool
+
+// checkHeaders returns an error per the constraints described in
+// IgnoreDupes' comment.
+func checkHeaders(a, b jose.Header) error {
+	if len(a)+len(b) == 0 {
+		return ErrTwoEmptyHeaders
+	}
+	for key := range a {
+		if b.Has(key) && !IgnoreDupes {
+			return ErrDuplicateHeaderParameter
+		}
+	}
+	return nil
+}
+
+const Any int = -1
+
+// ValidateMulti validates the current JWS as-is. Since it's meant to be
+// called after parsing a stream of bytes into a JWS, it doesn't do any
+// internal parsing like the Sign, Flat, Compact, or General methods do.
+// idx represents which signatures need to validate
+// in order for the JWS to be considered valid.
+// Use the constant `Any` (-1) if _any_ should validate the JWS. Otherwise,
+// use the indexes of the signatures that need to validate in order
+// for the JWS to be considered valid.
+// Note: if idx is omitted it defaults to requiring _all_
+// signatures validate, and the JWS spec required _at least_ one
+// signature to validate in order for the JWS to be considered
+// valid.
+func (j *JWS) ValidateMulti(keys []interface{}, methods []SigningMethod, idx ...int) error {
+
+	if len(j.sb) != len(methods) {
+		return ErrNotEnoughMethods
+	}
+
+	if len(keys) < 1 ||
+		len(keys) > 1 && len(keys) != len(j.sb) {
+		return ErrNotEnoughKeys
+	}
+
+	if len(keys) == 1 {
+		k := keys[0]
+		keys = make([]interface{}, len(methods))
+		for i := range keys {
+			keys[i] = k
+		}
+	}
+
+	any := len(idx) == 1 && idx[0] == Any
+	if !any {
+		sort.Ints(idx)
+	}
+
+	rp := 0
+	for i := range j.sb {
+		if j.sb[i].validate(j.plcache, keys[i], methods[i]) == nil &&
+			any || (rp < len(idx) && idx[rp] == i) {
+			rp++
+		}
+	}
+
+	if rp < len(idx) {
+		return ErrDidNotValidate
+	}
+	return nil
+}
+
+// Validate validates the current JWS as-is. Refer to ValidateMulti
+// for more information.
+func (j *JWS) Validate(key interface{}, method SigningMethod) error {
+	if len(j.sb) < 1 {
+		return ErrCannotValidate
+	}
+	return j.sb[0].validate(j.plcache, key, method)
+}
+
+func (s *sigHead) validate(pl []byte, key interface{}, method SigningMethod) error {
+	if s.method != method {
+		return ErrMismatchedAlgorithms
+	}
+	return method.Verify(format(s.Protected, pl), s.Signature, key)
 }

@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	crypto.RegisterHash(crypto.Hash(0), H)
+	crypto.RegisterHash(crypto.Hash(0), h)
 	RegisterSigningMethod(Unsecured)
 }
 
-// H is passed to crypto.RegisterHash.
-func H() hash.Hash { return &f{Writer: nil} }
+// h is passed to crypto.RegisterHash.
+func h() hash.Hash { return &f{Writer: nil} }
 
 type f struct{ io.Writer }
 

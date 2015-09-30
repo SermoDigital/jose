@@ -104,8 +104,10 @@ func (m *SigningMethodECDSA) sum(b []byte) []byte {
 func (m *SigningMethodECDSA) Hasher() crypto.Hash { return m.Hash }
 
 // MarshalJSON is in case somebody decides to place SigningMethodECDSA
-// inside the Claims in the "alg" portion. In order to keep things sane,
-// marshalling this will do the same thing as jws.SetProtected("alg", m.Alg())
+// inside the Header, presumably because they (wrongly) decided it was a good
+// idea to use the SigningMethod itself instead of the SigningMethod's Alg
+// method. In order to keep things sane, marshalling this will simply
+// return the JSON-compatible representation of m.Alg().
 func (m *SigningMethodECDSA) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + m.Alg() + `"`), nil
 }
