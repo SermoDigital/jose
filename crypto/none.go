@@ -1,4 +1,4 @@
-package jws
+package crypto
 
 import (
 	"crypto"
@@ -7,10 +7,7 @@ import (
 	"io"
 )
 
-func init() {
-	crypto.RegisterHash(crypto.Hash(0), h)
-	RegisterSigningMethod(Unsecured)
-}
+func init() { crypto.RegisterHash(crypto.Hash(0), h) }
 
 // h is passed to crypto.RegisterHash.
 func h() hash.Hash { return &f{Writer: nil} }

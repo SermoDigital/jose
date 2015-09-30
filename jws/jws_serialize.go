@@ -27,8 +27,8 @@ func (j *JWS) Flat(key interface{}) ([]byte, error) {
 // https://tools.ietf.org/html/rfc7515#section-7.2.1
 //
 // If only one key is passed it's used for all the provided
-// SigningMethods. Otherwise, len(keys) must equal the number
-// of SigningMethods added.
+// crypto.SigningMethods. Otherwise, len(keys) must equal the number
+// of crypto.SigningMethods added.
 func (j *JWS) General(keys ...interface{}) ([]byte, error) {
 	if err := j.sign(keys...); err != nil {
 		return nil, err

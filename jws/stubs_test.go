@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/SermoDigital/jose/crypto"
 )
 
 func Error(t *testing.T, want, got interface{}) {
@@ -66,7 +68,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec256Priv, err = ParseECPrivateKeyFromPEM(ecData)
+	ec256Priv, err = crypto.ParseECPrivateKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +76,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec256Pub, err = ParseECPublicKeyFromPEM(ecData)
+	ec256Pub, err = crypto.ParseECPublicKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}
@@ -82,7 +84,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec384Priv, err = ParseECPrivateKeyFromPEM(ecData)
+	ec384Priv, err = crypto.ParseECPrivateKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +92,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec384Pub, err = ParseECPublicKeyFromPEM(ecData)
+	ec384Pub, err = crypto.ParseECPublicKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}
@@ -98,7 +100,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec512Priv, err = ParseECPrivateKeyFromPEM(ecData)
+	ec512Priv, err = crypto.ParseECPrivateKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +108,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ec512Pub, err = ParseECPublicKeyFromPEM(ecData)
+	ec512Pub, err = crypto.ParseECPublicKeyFromPEM(ecData)
 	if err != nil {
 		panic(err)
 	}

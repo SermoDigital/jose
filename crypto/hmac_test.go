@@ -1,4 +1,4 @@
-package jws
+package crypto
 
 // import (
 // 	"github.com/dgrijalva/jwt-go"

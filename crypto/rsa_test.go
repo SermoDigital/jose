@@ -1,4 +1,4 @@
-package jws_test
+package crypto_test
 
 // import (
 // 	"github.com/dgrijalva/jwt-go"

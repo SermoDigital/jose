@@ -1,56 +1,38 @@
 package jws
 
 import (
-	"crypto"
 	"sync"
+
+	"github.com/SermoDigital/jose/crypto"
 )
 
 var (
 	mu = &sync.RWMutex{}
 
-	signingMethods = map[string]SigningMethod{
-		SigningMethodES256.Alg(): SigningMethodES256,
-		SigningMethodES384.Alg(): SigningMethodES384,
-		SigningMethodES512.Alg(): SigningMethodES512,
+	signingMethods = map[string]crypto.SigningMethod{
+		crypto.SigningMethodES256.Alg(): crypto.SigningMethodES256,
+		crypto.SigningMethodES384.Alg(): crypto.SigningMethodES384,
+		crypto.SigningMethodES512.Alg(): crypto.SigningMethodES512,
 
-		SigningMethodPS256.Alg(): SigningMethodPS256,
-		SigningMethodPS384.Alg(): SigningMethodPS384,
-		SigningMethodPS512.Alg(): SigningMethodPS512,
+		crypto.SigningMethodPS256.Alg(): crypto.SigningMethodPS256,
+		crypto.SigningMethodPS384.Alg(): crypto.SigningMethodPS384,
+		crypto.SigningMethodPS512.Alg(): crypto.SigningMethodPS512,
 
-		SigningMethodRS256.Alg(): SigningMethodRS256,
-		SigningMethodRS384.Alg(): SigningMethodRS384,
-		SigningMethodRS512.Alg(): SigningMethodRS512,
+		crypto.SigningMethodRS256.Alg(): crypto.SigningMethodRS256,
+		crypto.SigningMethodRS384.Alg(): crypto.SigningMethodRS384,
+		crypto.SigningMethodRS512.Alg(): crypto.SigningMethodRS512,
 
-		SigningMethodHS256.Alg(): SigningMethodHS256,
-		SigningMethodHS384.Alg(): SigningMethodHS384,
-		SigningMethodHS512.Alg(): SigningMethodHS512,
+		crypto.SigningMethodHS256.Alg(): crypto.SigningMethodHS256,
+		crypto.SigningMethodHS384.Alg(): crypto.SigningMethodHS384,
+		crypto.SigningMethodHS512.Alg(): crypto.SigningMethodHS512,
+
+		crypto.Unsecured.Alg(): crypto.Unsecured,
 	}
 )
 
-// SigningMethod is an interface that provides a way to sign JWS tokens.
-type SigningMethod interface {
-	// Alg describes the signing algorithm, and is used to uniquely
-	// describe the specific SigningMethod.
-	Alg() string
-
-	// Verify accepts the raw content, the signature, and the key used
-	// to sign the raw content, and returns any errors found while validating
-	// the signature and content.
-	Verify(raw []byte, sig Signature, key interface{}) error
-
-	// Sign returns a Signature for the raw bytes, as well as any errors
-	// that occurred during the signing.
-	Sign(raw []byte, key interface{}) (Signature, error)
-
-	// Used to cause quick panics when a SigningMethod whose form of hashing
-	// isn't linked in the binary when you register a SigningMethod.
-	// To spoof this, see "SigningMethodNone".
-	Hasher() crypto.Hash
-}
-
-// RegisterSigningMethod registers the SigningMethod in the global map.
+// RegisterSigningMethod registers the crypto.SigningMethod in the global map.
 // This is typically done inside the caller's init function.
-func RegisterSigningMethod(sm SigningMethod) {
+func RegisterSigningMethod(sm crypto.SigningMethod) {
 	if GetSigningMethod(sm.Alg()) != nil {
 		panic("jose/jws: cannot duplicate signing methods")
 	}
@@ -64,15 +46,15 @@ func RegisterSigningMethod(sm SigningMethod) {
 	mu.Unlock()
 }
 
-// RemoveSigningMethod removes the SigningMethod from the global map.
-func RemoveSigningMethod(sm SigningMethod) {
+// RemoveSigningMethod removes the crypto.SigningMethod from the global map.
+func RemoveSigningMethod(sm crypto.SigningMethod) {
 	mu.Lock()
 	delete(signingMethods, sm.Alg())
 	mu.Unlock()
 }
 
-// GetSigningMethod retrieves a SigningMethod from the global map.
-func GetSigningMethod(alg string) SigningMethod {
+// GetSigningMethod retrieves a crypto.SigningMethod from the global map.
+func GetSigningMethod(alg string) crypto.SigningMethod {
 	mu.RLock()
 	defer mu.RUnlock()
 	return signingMethods[alg]

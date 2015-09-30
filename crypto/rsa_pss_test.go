@@ -1,6 +1,6 @@
 // +build go1.4
 
-package jws_test
+package crypto_test
 
 // import (
 // 	"crypto/rsa"

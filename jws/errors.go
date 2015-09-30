@@ -3,9 +3,6 @@ package jws
 import "errors"
 
 var (
-	// ErrInvalidKey means the key argument passed to SigningMethod.Verify
-	// was not the correct type.
-	ErrInvalidKey = errors.New("key is invalid")
 
 	// ErrNotEnoughMethods is returned if New was called _or_ the Flat/Compact
 	// methods were called with 0 SigningMethods.
@@ -49,4 +46,10 @@ var (
 	// reasons. For example, if there aren't any signatures/payloads/headers
 	// to actually validate.
 	ErrCannotValidate = errors.New("cannot validate")
+
+	// ErrIsNotJWT means the given JWS is not a JWT.
+	ErrIsNotJWT = errors.New("JWS is not a JWT")
+
+	// ErrHoldsJWE means the given JWS holds a JWE inside its payload.
+	ErrHoldsJWE = errors.New("JWS holds JWE")
 )

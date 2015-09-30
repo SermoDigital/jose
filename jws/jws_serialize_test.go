@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/SermoDigital/jose"
+	"github.com/SermoDigital/jose/crypto"
 )
 
 var dataRaw = struct {
@@ -44,7 +45,7 @@ func init() {
 }
 
 func TestGeneralIntegrity(t *testing.T) {
-	j := New(dataRaw, SigningMethodRS512)
+	j := New(dataRaw, crypto.SigningMethodRS512)
 	b, err := j.General(rsaPriv)
 	if err != nil {
 		t.Error(err)
@@ -70,7 +71,7 @@ func TestGeneralIntegrity(t *testing.T) {
 }
 
 func TestFlatIntegrity(t *testing.T) {
-	j := New(dataRaw, SigningMethodRS512)
+	j := New(dataRaw, crypto.SigningMethodRS512)
 	b, err := j.Flat(rsaPriv)
 	if err != nil {
 		t.Error(err)
@@ -96,7 +97,7 @@ func TestFlatIntegrity(t *testing.T) {
 }
 
 func TestCompactIntegrity(t *testing.T) {
-	j := New(dataRaw, SigningMethodRS512)
+	j := New(dataRaw, crypto.SigningMethodRS512)
 	b, err := j.Compact(rsaPriv)
 	if err != nil {
 		t.Error(err)

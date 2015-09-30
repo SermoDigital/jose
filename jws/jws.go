@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/SermoDigital/jose"
+	"github.com/SermoDigital/jose/crypto"
 )
 
 // JWS represents a specific JWS.
@@ -15,7 +16,12 @@ type JWS struct {
 	clean   bool
 
 	sb []sigHead
+
+	isJWT bool
 }
+
+// Payload returns the JWS' payload.
+func (j *JWS) Payload() interface{} { return j.payload.v }
 
 // sigHead represents the 'signatures' member of the JWS' "general"
 // serialization form per
@@ -24,15 +30,15 @@ type JWS struct {
 // It's embedded inside the "flat" structure in order to properly
 // create the "flat" JWS.
 type sigHead struct {
-	Protected   rawBase64 `json:"protected,omitempty"`
-	Unprotected rawBase64 `json:"header,omitempty"`
-	Signature   Signature `json:"signature"`
+	Protected   rawBase64        `json:"protected,omitempty"`
+	Unprotected rawBase64        `json:"header,omitempty"`
+	Signature   crypto.Signature `json:"signature"`
 
-	protected   jose.Protected `json:"-"`
-	unprotected jose.Header    `json:"-"`
-	clean       bool           `json:"-"`
+	protected   jose.Protected
+	unprotected jose.Header
+	clean       bool
 
-	method SigningMethod
+	method crypto.SigningMethod
 }
 
 func (s *sigHead) unmarshal() error {
@@ -45,8 +51,8 @@ func (s *sigHead) unmarshal() error {
 	return nil
 }
 
-// New creates a new JWS with the provided SigningMethods.
-func New(content interface{}, methods ...SigningMethod) *JWS {
+// New creates a new JWS with the provided crypto.SigningMethods.
+func New(content interface{}, methods ...crypto.SigningMethod) *JWS {
 	sb := make([]sigHead, len(methods))
 	for i := range methods {
 		sb[i] = sigHead{
@@ -218,6 +224,10 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
 // For information on the json.Unmarshaler parameter, see Parse.
 func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 
+	// This section loosely follows
+	// https://tools.ietf.org/html/rfc7519#section-7.2
+	// because it's used to parse _both_ JWS and JWTs.
+
 	parts := bytes.Split(encoded, []byte{'.'})
 	if len(parts) != 3 {
 		return nil, ErrNotCompact
@@ -252,6 +262,11 @@ func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 		return nil, err
 	}
 
+	// https://tools.ietf.org/html/rfc7519#section-7.2.8
+	cty, ok := p.Get("cty").(string)
+	if ok && cty == "JWT" {
+		return &j, ErrHoldsJWE
+	}
 	return &j, nil
 }
 
@@ -279,6 +294,8 @@ func checkHeaders(a, b jose.Header) error {
 	return nil
 }
 
+// Any means any of the JWS signatures need to validate.
+// Refer to ValidateMulti for more information.
 const Any int = -1
 
 // ValidateMulti validates the current JWS as-is. Since it's meant to be
@@ -286,14 +303,16 @@ const Any int = -1
 // internal parsing like the Sign, Flat, Compact, or General methods do.
 // idx represents which signatures need to validate
 // in order for the JWS to be considered valid.
-// Use the constant `Any` (-1) if _any_ should validate the JWS. Otherwise,
+// Use the constant `Any` (-1) if *any* should validate the JWS. Otherwise,
 // use the indexes of the signatures that need to validate in order
 // for the JWS to be considered valid.
-// Note: if idx is omitted it defaults to requiring _all_
-// signatures validate, and the JWS spec required _at least_ one
-// signature to validate in order for the JWS to be considered
-// valid.
-func (j *JWS) ValidateMulti(keys []interface{}, methods []SigningMethod, idx ...int) error {
+//
+// Notes:
+//     1.) If idx is omitted it defaults to requiring *all*
+//         signatures validate
+//     2.) The JWS spec requires *at least* one
+//         signature to validate in order for the JWS to be considered valid.
+func (j *JWS) ValidateMulti(keys []interface{}, methods []crypto.SigningMethod, idx ...int) error {
 
 	if len(j.sb) != len(methods) {
 		return ErrNotEnoughMethods
@@ -333,14 +352,17 @@ func (j *JWS) ValidateMulti(keys []interface{}, methods []SigningMethod, idx ...
 
 // Validate validates the current JWS as-is. Refer to ValidateMulti
 // for more information.
-func (j *JWS) Validate(key interface{}, method SigningMethod) error {
+func (j *JWS) Validate(key interface{}, method crypto.SigningMethod) error {
 	if len(j.sb) < 1 {
 		return ErrCannotValidate
+	}
+	if j.isJWT {
+		return j.validateJWT(key, method)
 	}
 	return j.sb[0].validate(j.plcache, key, method)
 }
 
-func (s *sigHead) validate(pl []byte, key interface{}, method SigningMethod) error {
+func (s *sigHead) validate(pl []byte, key interface{}, method crypto.SigningMethod) error {
 	if s.method != method {
 		return ErrMismatchedAlgorithms
 	}

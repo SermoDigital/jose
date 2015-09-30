@@ -5,6 +5,8 @@ import (
 	"hash"
 	"io"
 	"testing"
+
+	c "github.com/SermoDigital/jose/crypto"
 )
 
 func init() { crypto.RegisterHash(crypto.Hash(0), HH) }
@@ -29,11 +31,11 @@ type TestSigningMethod struct {
 	Hash crypto.Hash
 }
 
-func (m *TestSigningMethod) Verify(_ []byte, _ Signature, _ interface{}) error {
+func (m *TestSigningMethod) Verify(_ []byte, _ c.Signature, _ interface{}) error {
 	return nil
 }
 
-func (m *TestSigningMethod) Sign(_ []byte, _ interface{}) (Signature, error) {
+func (m *TestSigningMethod) Sign(_ []byte, _ interface{}) (c.Signature, error) {
 	return nil, nil
 }
 
