@@ -1,8 +1,8 @@
 package crypto
 
-// SigningMethod is an interface that provides a way to sign JWS tokens.
 import "crypto"
 
+// SigningMethod is an interface that provides a way to sign JWS tokens.
 type SigningMethod interface {
 	// Alg describes the signing algorithm, and is used to uniquely
 	// describe the specific crypto.SigningMethod.

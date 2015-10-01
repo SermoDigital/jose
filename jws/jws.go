@@ -23,6 +23,9 @@ type JWS struct {
 // Payload returns the JWS' payload.
 func (j *JWS) Payload() interface{} { return j.payload.v }
 
+// SetPayload sets the JWS' raw, unexported payload.
+func (j *JWS) SetPayload(val interface{}) { j.payload.v = val }
+
 // sigHead represents the 'signatures' member of the JWS' "general"
 // serialization form per
 // https://tools.ietf.org/html/rfc7515#section-7.2.1
@@ -356,9 +359,6 @@ func (j *JWS) Validate(key interface{}, method crypto.SigningMethod) error {
 	if len(j.sb) < 1 {
 		return ErrCannotValidate
 	}
-	if j.isJWT {
-		return j.validateJWT(key, method)
-	}
 	return j.sb[0].validate(j.plcache, key, method)
 }
 
@@ -367,4 +367,72 @@ func (s *sigHead) validate(pl []byte, key interface{}, method crypto.SigningMeth
 		return ErrMismatchedAlgorithms
 	}
 	return method.Verify(format(s.Protected, pl), s.Signature, key)
+}
+
+// SetProtected sets the protected Header with the given value.
+// If i is provided, it'll assume the JWS is in the "general" format,
+// and set the Header at index i (inside the signatures member) with
+// the given value.
+func (j *JWS) SetProtected(key string, val interface{}, i ...int) {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	j.sb[k].protected.Set(key, val)
+}
+
+// RemoveProtected removes the value inside the protected Header that
+// corresponds with the given key.
+// For information on parameter i, see SetProtected.
+func (j *JWS) RemoveProtected(key string, i ...int) {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	j.sb[k].protected.Del(key)
+}
+
+// GetProtected retrieves the value inside the protected Header that
+// corresponds with the given key.
+// For information on parameter i, see SetProtected.
+func (j *JWS) GetProtected(key string, i ...int) interface{} {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	return j.sb[k].protected.Get(key)
+}
+
+// SetUnprotected sets the protected Header with the given value.
+// If i is provided, it'll assume the JWS is in the "general" format,
+// and set the Header at index i (inside the signatures member) with
+// the given value.
+func (j *JWS) SetUnprotected(key string, val interface{}, i ...int) {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	j.sb[k].unprotected.Set(key, val)
+}
+
+// RemoveUnprotected removes the value inside the unprotected Header that
+// corresponds with the given key.
+// For information on parameter i, see SetUnprotected.
+func (j *JWS) RemoveUnprotected(key string, i ...int) {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	j.sb[k].unprotected.Del(key)
+}
+
+// GetUnprotected retrieves the value inside the protected Header that
+// corresponds with the given key.
+// For information on parameter i, see SetUnprotected.
+func (j *JWS) GetUnprotected(key string, i ...int) interface{} {
+	k := 0
+	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
+		k = i[0]
+	}
+	return j.sb[k].unprotected.Get(key)
 }

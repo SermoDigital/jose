@@ -10,6 +10,36 @@ import (
 // methods, similar to net/url.Values.
 type Claims map[string]interface{}
 
+// Validate ...
+func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
+	if exp, ok := c.expiration(); ok {
+		if !within(exp, expLeeway, now) {
+			return ErrTokenIsExpired
+		}
+	}
+
+	if nbf, ok := c.notBefore(); ok {
+		if !within(nbf, nbfLeeway, now) {
+			return ErrTokenNotYetValid
+		}
+	}
+	return nil
+}
+
+func (c Claims) expiration() (int64, bool) {
+	v, ok := c.Get("exp").(int64)
+	return v, ok
+}
+
+func (c Claims) notBefore() (int64, bool) {
+	v, ok := c.Get("nbf").(int64)
+	return v, ok
+}
+
+func within(cur, delta, max int64) bool {
+	return cur+delta < max || cur-delta < max
+}
+
 // Get retrieves the value corresponding with key from the Claims.
 func (c Claims) Get(key string) interface{} {
 	if c == nil {
@@ -74,3 +104,8 @@ func (c *Claims) UnmarshalJSON(b []byte) error {
 	*c = Claims(tmp)
 	return nil
 }
+
+var (
+	_ json.Marshaler   = (Claims)(nil)
+	_ json.Unmarshaler = (*Claims)(nil)
+)
