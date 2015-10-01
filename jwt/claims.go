@@ -6,11 +6,12 @@ import (
 	"github.com/SermoDigital/jose"
 )
 
-// Claims implements a JOSE Claim set with the addition of some helper
+// Claims implements a set of JOSE Claims with the addition of some helper
 // methods, similar to net/url.Values.
 type Claims map[string]interface{}
 
-// Validate ...
+// Validate validates the Claims per the claims found in
+// https://tools.ietf.org/html/rfc7519#section-4.1
 func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
 	if exp, ok := c.expiration(); ok {
 		if !within(exp, expLeeway, now) {
