@@ -13,28 +13,18 @@ type Claims map[string]interface{}
 // Validate validates the Claims per the claims found in
 // https://tools.ietf.org/html/rfc7519#section-4.1
 func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
-	if exp, ok := c.expiration(); ok {
+	if exp, ok := c.Expiration(); ok {
 		if !within(exp, expLeeway, now) {
 			return ErrTokenIsExpired
 		}
 	}
 
-	if nbf, ok := c.notBefore(); ok {
+	if nbf, ok := c.NotBefore(); ok {
 		if !within(nbf, nbfLeeway, now) {
 			return ErrTokenNotYetValid
 		}
 	}
 	return nil
-}
-
-func (c Claims) expiration() (int64, bool) {
-	v, ok := c.Get("exp").(int64)
-	return v, ok
-}
-
-func (c Claims) notBefore() (int64, bool) {
-	v, ok := c.Get("nbf").(int64)
-	return v, ok
 }
 
 func within(cur, delta, max int64) bool {
@@ -104,6 +94,126 @@ func (c *Claims) UnmarshalJSON(b []byte) error {
 	}
 	*c = Claims(tmp)
 	return nil
+}
+
+// Issuer retrieves claim "iss" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.1
+func (c Claims) Issuer() (string, bool) {
+	v, ok := c.Get("iss").(string)
+	return v, ok
+}
+
+// Subject retrieves claim "sub" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.2
+func (c Claims) Subject() (string, bool) {
+	v, ok := c.Get("sub").(string)
+	return v, ok
+}
+
+// Audience retrieves claim "aud" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.3
+func (c Claims) Audience() (interface{}, bool) {
+	switch t := c.Get("aud").(type) {
+	case string, []string:
+		return t, true
+	default:
+		return nil, false
+	}
+}
+
+// Expiration retrieves claim "exp" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.4
+func (c Claims) Expiration() (int64, bool) {
+	v, ok := c.Get("exp").(int64)
+	return v, ok
+}
+
+// NotBefore retrieves claim "nbf" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.5
+func (c Claims) NotBefore() (int64, bool) {
+	v, ok := c.Get("nbf").(int64)
+	return v, ok
+}
+
+// IssuedAt retrieves claim "iat" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.6
+func (c Claims) IssuedAt() (int64, bool) {
+	v, ok := c.Get("iat").(int64)
+	return v, ok
+}
+
+// JWTID retrieves claim "jti" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.7
+func (c Claims) JWTID() (string, bool) {
+	v, ok := c.Get("jti").(string)
+	return v, ok
+}
+
+// RemoveIssuer deletes claim "iss" from c.
+func (c Claims) RemoveIssuer() { c.Del("iss") }
+
+// RemoveSubject deletes claim "sub" from c.
+func (c Claims) RemoveSubject() { c.Del("sub") }
+
+// RemoveAudience deletes claim "aud" from c.
+func (c Claims) RemoveAudience() { c.Del("aud") }
+
+// RemoveExpiration deletes claim "exp" from c.
+func (c Claims) RemoveExpiration() { c.Del("exp") }
+
+// RemoveNotBefore deletes claim "nbf" from c.
+func (c Claims) RemoveNotBefore() { c.Del("nbf") }
+
+// RemoveIssuedAt deletes claim "iat" from c.
+func (c Claims) RemoveIssuedAt() { c.Del("iat") }
+
+// RemoveJWTID deletes claim "jti" from c.
+func (c Claims) RemoveJWTID() { c.Del("jti") }
+
+// SetIssuer sets claim "iss" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.1
+func (c Claims) SetIssuer(issuer string) {
+	c.Set("iss", issuer)
+}
+
+// SetSubject sets claim "iss" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.2
+func (c Claims) SetSubject(subject string) {
+	c.Set("sub", subject)
+}
+
+// SetAudience sets claim "aud" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.3
+func (c Claims) SetAudience(audience ...string) {
+	if len(audience) == 1 {
+		c.Set("aud", audience[0])
+	} else {
+		c.Set("aud", audience)
+	}
+}
+
+// SetExpiration sets claim "exp" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.4
+func (c Claims) SetExpiration(expiration int64) {
+	c.Set("exp", expiration)
+}
+
+// SetNotBefore sets claim "nbf" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.5
+func (c Claims) SetNotBefore(notBefore int64) {
+	c.Set("nbf", notBefore)
+}
+
+// SetIssuedAt sets claim "iat" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.6
+func (c Claims) SetIssuedAt(issuedAt int64) {
+	c.Set("iat", issuedAt)
+}
+
+// SetJWTID sets claim "jti" per its type in
+// https://tools.ietf.org/html/rfc7519#section-4.1.7
+func (c Claims) SetJWTID(uniqueID string) {
+	c.Set("jti", uniqueID)
 }
 
 var (

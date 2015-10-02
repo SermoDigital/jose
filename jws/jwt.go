@@ -12,13 +12,13 @@ type Claims jwt.Claims
 
 // NewJWT creates a new JWT with the given claims.
 func NewJWT(claims Claims, method crypto.SigningMethod) jwt.JWT {
-	j := New(claims, method)
+	j := New(claims, method).(*jws)
 	j.isJWT = true
 	return j
 }
 
 // Serialize helps implements jwt.JWT.
-func (j *JWS) Serialize(key interface{}) ([]byte, error) {
+func (j *jws) Serialize(key interface{}) ([]byte, error) {
 	if j.isJWT {
 		return j.Compact(key)
 	}
@@ -26,7 +26,7 @@ func (j *JWS) Serialize(key interface{}) ([]byte, error) {
 }
 
 // Claims helps implements jwt.JWT.
-func (j *JWS) Claims() jwt.Claims {
+func (j *jws) Claims() jwt.Claims {
 	if j.isJWT {
 		if c, ok := j.payload.v.(Claims); ok {
 			return jwt.Claims(c)
@@ -40,70 +40,60 @@ func (j *JWS) Claims() jwt.Claims {
 // a set of claims) it'll return an error stating the
 // JWT isn't a JWT.
 func ParseJWT(encoded []byte) (jwt.JWT, error) {
-	t, err := ParseCompact(encoded)
+	t, err := parseCompact(encoded, true)
 	if err != nil {
 		return nil, err
 	}
-	c, ok := t.payload.v.(map[string]interface{})
+	c, ok := t.Payload().(map[string]interface{})
 	if !ok {
 		return nil, ErrIsNotJWT
 	}
-	t.payload.v = Claims(c)
-	t.isJWT = true
+	t.SetPayload(Claims(c))
 	return t, nil
 }
 
 // IsJWT returns true if the JWS is a JWT.
-func (j *JWS) IsJWT() bool { return j.isJWT }
+func (j *jws) IsJWT() bool { return j.isJWT }
 
-// Verify helps implement jwt.JWT.
-func (j *JWS) Verify(key interface{}, m crypto.SigningMethod, o ...jwt.Opts) error {
+func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Validator) error {
 	if j.isJWT {
-		if err := j.Validate(key, m); err != nil {
+		if err := j.Verify(key, m); err != nil {
 			return err
 		}
+		var v1 jwt.Validator
+		if len(v) > 0 {
+			v1 = *v[0]
+		}
+
 		c, ok := j.payload.v.(Claims)
 		if ok {
-			var p jwt.Opts
-			if len(o) > 0 {
-				p = o[0]
+			if err := v1.Validate(j); err != nil {
+				return err
 			}
-
-			if p.Fn != nil {
-				if err := p.Fn(jwt.Claims(c)); err != nil {
-					return err
-				}
-			}
-			return jwt.Claims(c).Validate(time.Now().Unix(), p.EXP, p.NBF)
+			return jwt.Claims(c).Validate(time.Now().Unix(), v1.EXP, v1.NBF)
 		}
 	}
 	return ErrIsNotJWT
 }
 
-// Opts represents some of the validation options.
-// It mimics jwt.Opts.
-type Opts struct {
-	EXP int64 // EXPLeeway
-	NBF int64 // NBFLeeway
-	Fn  func(Claims) error
-	_   struct{}
+// Conv converts a func(Claims) error to type jwt.ValidateFunc.
+func Conv(fn func(Claims) error) jwt.ValidateFunc {
+	if fn == nil {
+		return nil
+	}
+	return func(c jwt.Claims) error {
+		return fn(Claims(c))
+	}
 }
 
-// C is shorthand for Convert(fn).
-func (o Opts) C() jwt.Opts { return o.Convert() }
-
-// Convert converts Opts into jwt.Opts.
-func (o Opts) Convert() jwt.Opts {
-	p := jwt.Opts{
-		EXP: o.EXP,
-		NBF: o.NBF,
+// NewOpts returns a pointer to a jwt.Validator structure containing
+// the info to be used in the validation of a JWT.
+func NewOpts(c Claims, exp, nbf int64) *jwt.Validator {
+	return &jwt.Validator{
+		Expected: jwt.Claims(c),
+		EXP:      exp,
+		NBF:      nbf,
 	}
-	if o.Fn != nil {
-		p.Fn = func(c jwt.Claims) error {
-			return o.Fn(Claims(c))
-		}
-	}
-	return p
 }
 
-var _ jwt.JWT = (*JWS)(nil)
+var _ jwt.JWT = (*jws)(nil)

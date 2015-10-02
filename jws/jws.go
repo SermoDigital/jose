@@ -3,14 +3,65 @@ package jws
 import (
 	"bytes"
 	"encoding/json"
-	"sort"
 
 	"github.com/SermoDigital/jose"
 	"github.com/SermoDigital/jose/crypto"
 )
 
-// JWS represents a specific JWS.
-type JWS struct {
+// JWS implements a JWS per RFC 7515.
+type JWS interface {
+	// Payload Returns the payload.
+	Payload() interface{}
+
+	// SetPayload sets the payload with the given value.
+	SetPayload(interface{})
+
+	// Protected returns the JWS' Protected Header.
+	// i represents the index of the Protected Header.
+	// Left empty, it defaults to 0.
+	Protected(...int) jose.Protected
+
+	// Header returns the JWS' unprotected Header.
+	// i represents the index of the Protected Header.
+	// Left empty, it defaults to 0.
+	Header(...int) jose.Header
+
+	// Verify validates the current JWS' signature as-is. Refer to
+	// ValidateMulti for more information.
+	Verify(key interface{}, method crypto.SigningMethod) error
+
+	// ValidateMulti validates the current JWS' signature as-is. Since it's
+	// meant to be called after parsing a stream of bytes into a JWS, it
+	// shouldn't do any internal parsing like the Sign, Flat, Compact, or
+	// General methods do.
+	VerifyMulti(keys []interface{}, methods []crypto.SigningMethod, o *SigningOpts) error
+
+	// VerifyCallback validates the current JWS' signature as-is. It
+	// accepts a callback function that can be used to access header
+	// parameters to lookup needed information. For example, looking
+	// up the "kid" parameter.
+	// The return slice must be a slice of keys used in the verification
+	// of the JWS.
+	VerifyCallback(fn VerifyCallback, methods []crypto.SigningMethod, o *SigningOpts) error
+
+	// General serializes the JWS into its "general" form per
+	// https://tools.ietf.org/html/rfc7515#section-7.2.1
+	General(keys ...interface{}) ([]byte, error)
+
+	// Flat serializes the JWS to its "flattened" form per
+	// https://tools.ietf.org/html/rfc7515#section-7.2.2
+	Flat(key interface{}) ([]byte, error)
+
+	// Compact serializes the JWS into its "compact" form per
+	// https://tools.ietf.org/html/rfc7515#section-7.1
+	Compact(key interface{}) ([]byte, error)
+
+	// IsJWT returns true if the JWS is a JWT.
+	IsJWT() bool
+}
+
+// jws represents a specific jws.
+type jws struct {
 	payload *payload
 	plcache rawBase64
 	clean   bool
@@ -20,18 +71,38 @@ type JWS struct {
 	isJWT bool
 }
 
-// Payload returns the JWS' payload.
-func (j *JWS) Payload() interface{} { return j.payload.v }
+// Payload returns the jws' payload.
+func (j *jws) Payload() interface{} { return j.payload.v }
 
-// SetPayload sets the JWS' raw, unexported payload.
-func (j *JWS) SetPayload(val interface{}) { j.payload.v = val }
+// SetPayload sets the jws' raw, unexported payload.
+func (j *jws) SetPayload(val interface{}) { j.payload.v = val }
 
-// sigHead represents the 'signatures' member of the JWS' "general"
+// Protected returns the JWS' Protected Header.
+// i represents the index of the Protected Header.
+// Left empty, it defaults to 0.
+func (j *jws) Protected(i ...int) jose.Protected {
+	if len(i) == 0 {
+		return j.sb[0].protected
+	}
+	return j.sb[i[0]].protected
+}
+
+// Header returns the JWS' unprotected Header.
+// i represents the index of the Protected Header.
+// Left empty, it defaults to 0.
+func (j *jws) Header(i ...int) jose.Header {
+	if len(i) == 0 {
+		return j.sb[0].unprotected
+	}
+	return j.sb[i[0]].unprotected
+}
+
+// sigHead represents the 'signatures' member of the jws' "general"
 // serialization form per
 // https://tools.ietf.org/html/rfc7515#section-7.2.1
 //
 // It's embedded inside the "flat" structure in order to properly
-// create the "flat" JWS.
+// create the "flat" jws.
 type sigHead struct {
 	Protected   rawBase64        `json:"protected,omitempty"`
 	Unprotected rawBase64        `json:"header,omitempty"`
@@ -54,8 +125,8 @@ func (s *sigHead) unmarshal() error {
 	return nil
 }
 
-// New creates a new JWS with the provided crypto.SigningMethods.
-func New(content interface{}, methods ...crypto.SigningMethod) *JWS {
+// New creates a JWS with the provided crypto.SigningMethods.
+func New(content interface{}, methods ...crypto.SigningMethod) JWS {
 	sb := make([]sigHead, len(methods))
 	for i := range methods {
 		sb[i] = sigHead{
@@ -66,7 +137,7 @@ func New(content interface{}, methods ...crypto.SigningMethod) *JWS {
 			method:      methods[i],
 		}
 	}
-	return &JWS{
+	return &jws{
 		payload: &payload{v: content},
 		sb:      sb,
 	}
@@ -93,8 +164,8 @@ type generic struct {
 	Signatures []sigHead `json:"signatures,omitempty"`
 }
 
-// Parse parses any of the three serialized JWS forms into a physical
-// JWS per https://tools.ietf.org/html/rfc7515#section-5.2
+// Parse parses any of the three serialized jws forms into a physical
+// jws per https://tools.ietf.org/html/rfc7515#section-5.2
 //
 // It accepts a json.Unmarshaler in order to properly parse
 // the payload. In order to keep the caller from having to do extra
@@ -108,7 +179,7 @@ type generic struct {
 // ParseGeneral, ParseFlat, or ParseCompact.
 // It should only be called if, for whatever reason, you do not
 // know which form the serialized JWT is in.
-func Parse(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
+func Parse(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
 	// Try and unmarshal into a generic struct that'll
 	// hopefully hold either of the two JSON serialization
 	// formats.s
@@ -125,13 +196,13 @@ func Parse(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 	return g.parseGeneral(u...)
 }
 
-// ParseGeneral parses a JWS serialized into its "general" form per
+// ParseGeneral parses a jws serialized into its "general" form per
 // https://tools.ietf.org/html/rfc7515#section-7.2.1
-// into a physical JWS per
+// into a physical jws per
 // https://tools.ietf.org/html/rfc7515#section-5.2
 //
 // For information on the json.Unmarshaler parameter, see Parse.
-func ParseGeneral(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
+func ParseGeneral(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
 	var g generic
 	if err := json.Unmarshal(encoded, &g); err != nil {
 		return nil, err
@@ -139,7 +210,7 @@ func ParseGeneral(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 	return g.parseGeneral(u...)
 }
 
-func (g *generic) parseGeneral(u ...json.Unmarshaler) (*JWS, error) {
+func (g *generic) parseGeneral(u ...json.Unmarshaler) (JWS, error) {
 
 	var p payload
 	if len(u) > 0 {
@@ -165,7 +236,7 @@ func (g *generic) parseGeneral(u ...json.Unmarshaler) (*JWS, error) {
 		g.clean = true
 	}
 
-	return &JWS{
+	return &jws{
 		payload: &p,
 		plcache: g.Payload,
 		clean:   true,
@@ -173,13 +244,13 @@ func (g *generic) parseGeneral(u ...json.Unmarshaler) (*JWS, error) {
 	}, nil
 }
 
-// ParseFlat parses a JWS serialized into its "flat" form per
+// ParseFlat parses a jws serialized into its "flat" form per
 // https://tools.ietf.org/html/rfc7515#section-7.2.2
-// into a physical JWS per
+// into a physical jws per
 // https://tools.ietf.org/html/rfc7515#section-5.2
 //
 // For information on the json.Unmarshaler parameter, see Parse.
-func ParseFlat(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
+func ParseFlat(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
 	var g generic
 	if err := json.Unmarshal(encoded, &g); err != nil {
 		return nil, err
@@ -187,7 +258,7 @@ func ParseFlat(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 	return g.parseFlat(u...)
 }
 
-func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
+func (g *generic) parseFlat(u ...json.Unmarshaler) (JWS, error) {
 
 	var p payload
 	if len(u) > 0 {
@@ -211,7 +282,7 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
 		return nil, err
 	}
 
-	return &JWS{
+	return &jws{
 		payload: &p,
 		plcache: g.Payload,
 		clean:   true,
@@ -219,17 +290,21 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (*JWS, error) {
 	}, nil
 }
 
-// ParseCompact parses a JWS serialized into its "compact" form per
+// ParseCompact parses a jws serialized into its "compact" form per
 // https://tools.ietf.org/html/rfc7515#section-7.1
-// into a physical JWS per
+// into a physical jws per
 // https://tools.ietf.org/html/rfc7515#section-5.2
 //
 // For information on the json.Unmarshaler parameter, see Parse.
-func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
+func ParseCompact(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
+	return parseCompact(encoded, false)
+}
+
+func parseCompact(encoded []byte, jwt bool) (*jws, error) {
 
 	// This section loosely follows
 	// https://tools.ietf.org/html/rfc7519#section-7.2
-	// because it's used to parse _both_ JWS and JWTs.
+	// because it's used to parse _both_ jws and JWTs.
 
 	parts := bytes.Split(encoded, []byte{'.'})
 	if len(parts) != 3 {
@@ -250,9 +325,10 @@ func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 		return nil, err
 	}
 
-	j := JWS{
+	j := jws{
 		payload: &payload{},
 		sb:      []sigHead{s},
+		isJWT:   jwt,
 	}
 
 	if err := j.payload.UnmarshalJSON(parts[1]); err != nil {
@@ -277,10 +353,11 @@ func ParseCompact(encoded []byte, u ...json.Unmarshaler) (*JWS, error) {
 // should ignore duplicate Header keys instead of reporting an error when
 // duplicate Header keys are found.
 //
-// Note: Duplicate Header keys are defined in
-// https://tools.ietf.org/html/rfc7515#section-5.2
-// meaning keys that both the protected and unprotected
-// Headers possess.
+// Note:
+//     Duplicate Header keys are defined in
+//     https://tools.ietf.org/html/rfc7515#section-5.2
+//     meaning keys that both the protected and unprotected
+//     Headers possess.
 var IgnoreDupes bool
 
 // checkHeaders returns an error per the constraints described in
@@ -295,144 +372,4 @@ func checkHeaders(a, b jose.Header) error {
 		}
 	}
 	return nil
-}
-
-// Any means any of the JWS signatures need to validate.
-// Refer to ValidateMulti for more information.
-const Any int = -1
-
-// ValidateMulti validates the current JWS as-is. Since it's meant to be
-// called after parsing a stream of bytes into a JWS, it doesn't do any
-// internal parsing like the Sign, Flat, Compact, or General methods do.
-// idx represents which signatures need to validate
-// in order for the JWS to be considered valid.
-// Use the constant `Any` (-1) if *any* should validate the JWS. Otherwise,
-// use the indexes of the signatures that need to validate in order
-// for the JWS to be considered valid.
-//
-// Notes:
-//     1.) If idx is omitted it defaults to requiring *all*
-//         signatures validate
-//     2.) The JWS spec requires *at least* one
-//         signature to validate in order for the JWS to be considered valid.
-func (j *JWS) ValidateMulti(keys []interface{}, methods []crypto.SigningMethod, idx ...int) error {
-
-	if len(j.sb) != len(methods) {
-		return ErrNotEnoughMethods
-	}
-
-	if len(keys) < 1 ||
-		len(keys) > 1 && len(keys) != len(j.sb) {
-		return ErrNotEnoughKeys
-	}
-
-	if len(keys) == 1 {
-		k := keys[0]
-		keys = make([]interface{}, len(methods))
-		for i := range keys {
-			keys[i] = k
-		}
-	}
-
-	any := len(idx) == 1 && idx[0] == Any
-	if !any {
-		sort.Ints(idx)
-	}
-
-	rp := 0
-	for i := range j.sb {
-		if j.sb[i].validate(j.plcache, keys[i], methods[i]) == nil &&
-			any || (rp < len(idx) && idx[rp] == i) {
-			rp++
-		}
-	}
-
-	if rp < len(idx) {
-		return ErrDidNotValidate
-	}
-	return nil
-}
-
-// Validate validates the current JWS as-is. Refer to ValidateMulti
-// for more information.
-func (j *JWS) Validate(key interface{}, method crypto.SigningMethod) error {
-	if len(j.sb) < 1 {
-		return ErrCannotValidate
-	}
-	return j.sb[0].validate(j.plcache, key, method)
-}
-
-func (s *sigHead) validate(pl []byte, key interface{}, method crypto.SigningMethod) error {
-	if s.method != method {
-		return ErrMismatchedAlgorithms
-	}
-	return method.Verify(format(s.Protected, pl), s.Signature, key)
-}
-
-// SetProtected sets the protected Header with the given value.
-// If i is provided, it'll assume the JWS is in the "general" format,
-// and set the Header at index i (inside the signatures member) with
-// the given value.
-func (j *JWS) SetProtected(key string, val interface{}, i ...int) {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	j.sb[k].protected.Set(key, val)
-}
-
-// RemoveProtected removes the value inside the protected Header that
-// corresponds with the given key.
-// For information on parameter i, see SetProtected.
-func (j *JWS) RemoveProtected(key string, i ...int) {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	j.sb[k].protected.Del(key)
-}
-
-// GetProtected retrieves the value inside the protected Header that
-// corresponds with the given key.
-// For information on parameter i, see SetProtected.
-func (j *JWS) GetProtected(key string, i ...int) interface{} {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	return j.sb[k].protected.Get(key)
-}
-
-// SetUnprotected sets the protected Header with the given value.
-// If i is provided, it'll assume the JWS is in the "general" format,
-// and set the Header at index i (inside the signatures member) with
-// the given value.
-func (j *JWS) SetUnprotected(key string, val interface{}, i ...int) {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	j.sb[k].unprotected.Set(key, val)
-}
-
-// RemoveUnprotected removes the value inside the unprotected Header that
-// corresponds with the given key.
-// For information on parameter i, see SetUnprotected.
-func (j *JWS) RemoveUnprotected(key string, i ...int) {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	j.sb[k].unprotected.Del(key)
-}
-
-// GetUnprotected retrieves the value inside the protected Header that
-// corresponds with the given key.
-// For information on parameter i, see SetUnprotected.
-func (j *JWS) GetUnprotected(key string, i ...int) interface{} {
-	k := 0
-	if len(i) > 0 && len(i) < len(j.sb) && i[0] > -1 {
-		k = i[0]
-	}
-	return j.sb[k].unprotected.Get(key)
 }
