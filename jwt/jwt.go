@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -61,23 +60,23 @@ func (v *Validator) Validate(j JWT) error {
 	if iss, ok := v.Expected.Issuer(); ok &&
 		j.Claims().Get("iss") != iss {
 		fmt.Println(iss, j.Claims().Get("iss"))
-		return errors.New("TODO 1")
+		return ErrInvalidISSClaim
 	}
 	if sub, ok := v.Expected.Subject(); ok &&
 		j.Claims().Get("sub") != sub {
-		return errors.New("TODO 2")
+		return ErrInvalidSUBClaim
 	}
 	if iat, ok := v.Expected.IssuedAt(); ok &&
 		j.Claims().Get("iat") != iat {
-		return errors.New("TODO 3")
+		return ErrInvalidIATClaim
 	}
 	if jti, ok := v.Expected.JWTID(); ok &&
 		j.Claims().Get("jti") != jti {
-		return errors.New("TODO 4")
+		return ErrInvalidJTIClaim
 	}
 	if aud, ok := v.Expected.Audience(); ok &&
 		!eq(j.Claims().Get("aud"), aud) {
-		return errors.New("TODO 5")
+		return ErrInvalidAUDClaim
 	}
 
 	if v.Fn != nil {
