@@ -7,9 +7,6 @@ import (
 	"github.com/SermoDigital/jose/jwt"
 )
 
-// Claims represents a set of JOSE Claims.
-type Claims jwt.Claims
-
 // NewJWT creates a new JWT with the given claims.
 func NewJWT(claims Claims, method crypto.SigningMethod) jwt.JWT {
 	j := New(claims, method).(*jws)
@@ -64,7 +61,6 @@ func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Valida
 		if len(v) > 0 {
 			v1 = *v[0]
 		}
-
 		c, ok := j.payload.v.(Claims)
 		if ok {
 			if err := v1.Validate(j); err != nil {
@@ -86,13 +82,14 @@ func Conv(fn func(Claims) error) jwt.ValidateFunc {
 	}
 }
 
-// NewOpts returns a pointer to a jwt.Validator structure containing
+// NewValidator returns a pointer to a jwt.Validator structure containing
 // the info to be used in the validation of a JWT.
-func NewOpts(c Claims, exp, nbf int64) *jwt.Validator {
+func NewValidator(c Claims, exp, nbf int64, fn func(Claims) error) *jwt.Validator {
 	return &jwt.Validator{
 		Expected: jwt.Claims(c),
 		EXP:      exp,
 		NBF:      nbf,
+		Fn:       Conv(fn),
 	}
 }
 

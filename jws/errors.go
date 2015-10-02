@@ -52,4 +52,8 @@ var (
 
 	// ErrHoldsJWE means the given JWS holds a JWE inside its payload.
 	ErrHoldsJWE = errors.New("JWS holds JWE")
+
+	// ErrNotEnoughValidSignatures means the JWS did not meet the required
+	// number of signatures.
+	ErrNotEnoughValidSignatures = errors.New("not enough valid signatures in the JWS")
 )

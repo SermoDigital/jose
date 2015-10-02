@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"testing"
 
@@ -121,6 +122,30 @@ func TestVerifyMulti(t *testing.T) {
 	}
 }
 
+func TestVerifyMultiOneKey(t *testing.T) {
+	sm := []crypto.SigningMethod{
+		crypto.SigningMethodRS256,
+		crypto.SigningMethodPS384,
+		crypto.SigningMethodPS512,
+	}
+
+	j := New(easyData, sm...)
+	b, err := j.General(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseGeneral(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	keys := []interface{}{rsaPub}
+	if err := j2.VerifyMulti(keys, sm, nil); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestVerifyMultiMismatchedAlgs(t *testing.T) {
 	sm := []crypto.SigningMethod{
 		crypto.SigningMethodRS256,
@@ -205,6 +230,64 @@ func TestVerifyMultiNotEnoughKeys(t *testing.T) {
 	}
 }
 
+func TestVerifyMultiSigningOpts(t *testing.T) {
+	sm := []crypto.SigningMethod{
+		crypto.SigningMethodRS256,
+		crypto.SigningMethodPS384,
+		crypto.SigningMethodPS512,
+	}
+
+	j := New(easyData, sm...)
+	b, err := j.General(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseGeneral(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	o := SigningOpts{
+		Number:  3,
+		Indices: []int{0, 1, 2},
+	}
+
+	keys := []interface{}{rsaPub, rsaPub, rsaPub}
+	if err := j2.VerifyMulti(keys, sm, &o); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestVerifyMultiSigningOptsErr(t *testing.T) {
+	sm := []crypto.SigningMethod{
+		crypto.SigningMethodRS256,
+		crypto.SigningMethodPS384,
+		crypto.SigningMethodPS512,
+	}
+
+	j := New(easyData, sm...)
+	b, err := j.General(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseGeneral(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	o := SigningOpts{
+		Number:  4,
+		Indices: []int{0, 1, 2, 3},
+	}
+
+	keys := []interface{}{rsaPub, rsaPub, rsaPub}
+	if err := j2.VerifyMulti(keys, sm, &o); err == nil {
+		t.Error("Should not be nil!")
+	}
+}
+
 func TestVerify(t *testing.T) {
 	j := New(easyData, crypto.SigningMethodPS512)
 	b, err := j.Flat(rsaPriv)
@@ -219,5 +302,64 @@ func TestVerify(t *testing.T) {
 
 	if err := j2.Verify(rsaPub, crypto.SigningMethodPS512); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestVerifyCallback(t *testing.T) {
+	j := New(easyData, crypto.SigningMethodPS512)
+	b, err := j.Flat(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseFlat(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	cb := func(j JWS) ([]interface{}, error) {
+		return []interface{}{rsaPub}, nil
+	}
+
+	if err := j2.VerifyCallback(cb, []crypto.SigningMethod{crypto.SigningMethodPS512}, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestVerifyCallbackErr(t *testing.T) {
+	j := New(easyData, crypto.SigningMethodPS512)
+	b, err := j.Flat(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseFlat(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	cb := func(j JWS) ([]interface{}, error) {
+		return nil, errors.New("k")
+	}
+
+	if err := j2.VerifyCallback(cb, []crypto.SigningMethod{crypto.SigningMethodPS512}, nil); err == nil {
+		t.Error("Should not be nil!")
+	}
+}
+
+func TestVerifyNoSBs(t *testing.T) {
+	j := New(easyData, crypto.SigningMethodPS512)
+	b, err := j.Flat(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	j2, err := ParseFlat(b)
+	if err != nil {
+		t.Error(err)
+	}
+	j2.(*jws).sb = nil
+	if err := j2.Verify(rsaPub, crypto.SigningMethodPS512); err != ErrCannotValidate {
+		Error(t, ErrCannotValidate, err)
 	}
 }

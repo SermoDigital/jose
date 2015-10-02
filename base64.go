@@ -5,7 +5,7 @@ import "encoding/base64"
 // Encoder is satisfied if the type can marshal itself into a valid
 // structure for a JWS.
 type Encoder interface {
-	// Base64 implies T -> JSON -> Base64
+	// Base64 implies T -> JSON -> RawURLEncodingBase64
 	Base64() ([]byte, error)
 }
 

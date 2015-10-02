@@ -1,7 +1,6 @@
 package jws
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -174,12 +173,10 @@ func (s *SigningOpts) Inc() { s.Number++ }
 // It'll return an error if the passed SigningOpts' Number member is less
 // than s's or if the passed SigningOpts' Indices slice isn't equal to s's.
 func (s *SigningOpts) Validate(have *SigningOpts) error {
-	if have.Number < s.Number {
-		return errors.New("TODO 2")
-	}
-	if s.Indices != nil &&
-		!eq(s.Indices, have.Indices) {
-		return errors.New("TODO 3")
+	if have.Number < s.Number ||
+		(s.Indices != nil &&
+			!eq(s.Indices, have.Indices)) {
+		return ErrNotEnoughValidSignatures
 	}
 	return nil
 }

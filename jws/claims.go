@@ -1,75 +1,43 @@
-package jwt
+package jws
 
 import (
 	"encoding/json"
 
 	"github.com/SermoDigital/jose"
+	"github.com/SermoDigital/jose/jwt"
 )
 
-// Claims implements a set of JOSE Claims with the addition of some helper
-// methods, similar to net/url.Values.
-type Claims map[string]interface{}
-
-// Validate validates the Claims per the claims found in
-// https://tools.ietf.org/html/rfc7519#section-4.1
-func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
-	if exp, ok := c.Expiration(); ok {
-		if !within(exp, expLeeway, now) {
-			return ErrTokenIsExpired
-		}
-	}
-
-	if nbf, ok := c.NotBefore(); ok {
-		if !within(nbf, nbfLeeway, now) {
-			return ErrTokenNotYetValid
-		}
-	}
-	return nil
-}
-
-func within(cur, delta, max int64) bool {
-	return cur+delta < max || cur-delta < max
-}
+// Claims represents a set of JOSE Claims.
+type Claims jwt.Claims
 
 // Get retrieves the value corresponding with key from the Claims.
 func (c Claims) Get(key string) interface{} {
-	if c == nil {
-		return nil
-	}
-	return c[key]
+	return jwt.Claims(c).Get(key)
 }
 
 // Set sets Claims[key] = val. It'll overwrite without warning.
 func (c Claims) Set(key string, val interface{}) {
-	c[key] = val
+	jwt.Claims(c).Set(key, val)
 }
 
 // Del removes the value that corresponds with key from the Claims.
 func (c Claims) Del(key string) {
-	delete(c, key)
+	jwt.Claims(c).Del(key)
 }
 
 // Has returns true if a value for the given key exists inside the Claims.
 func (c Claims) Has(key string) bool {
-	_, ok := c[key]
-	return ok
+	return jwt.Claims(c).Has(key)
 }
 
 // MarshalJSON implements json.Marshaler for Claims.
 func (c Claims) MarshalJSON() ([]byte, error) {
-	if c == nil || len(c) == 0 {
-		return nil, nil
-	}
-	return json.Marshal(map[string]interface{}(c))
+	return jwt.Claims(c).MarshalJSON()
 }
 
 // Base64 implements the Encoder interface.
 func (c Claims) Base64() ([]byte, error) {
-	b, err := c.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	return jose.Base64Encode(b), nil
+	return jwt.Claims(c).Base64()
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Claims.
@@ -99,121 +67,120 @@ func (c *Claims) UnmarshalJSON(b []byte) error {
 // Issuer retrieves claim "iss" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.1
 func (c Claims) Issuer() (string, bool) {
-	v, ok := c.Get("iss").(string)
-	return v, ok
+	return jwt.Claims(c).Issuer()
 }
 
 // Subject retrieves claim "sub" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.2
 func (c Claims) Subject() (string, bool) {
-	v, ok := c.Get("sub").(string)
-	return v, ok
+	return jwt.Claims(c).Subject()
 }
 
 // Audience retrieves claim "aud" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.3
 func (c Claims) Audience() (interface{}, bool) {
-	switch t := c.Get("aud").(type) {
-	case string, []string:
-		return t, true
-	default:
-		return nil, false
-	}
+	return jwt.Claims(c).Audience()
 }
 
 // Expiration retrieves claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
 func (c Claims) Expiration() (int64, bool) {
-	v, ok := c.Get("exp").(int64)
-	return v, ok
+	return jwt.Claims(c).Expiration()
 }
 
 // NotBefore retrieves claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
 func (c Claims) NotBefore() (int64, bool) {
-	v, ok := c.Get("nbf").(int64)
-	return v, ok
+	return jwt.Claims(c).NotBefore()
 }
 
 // IssuedAt retrieves claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
 func (c Claims) IssuedAt() (int64, bool) {
-	v, ok := c.Get("iat").(int64)
-	return v, ok
+	return jwt.Claims(c).IssuedAt()
 }
 
 // JWTID retrieves claim "jti" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.7
 func (c Claims) JWTID() (string, bool) {
-	v, ok := c.Get("jti").(string)
-	return v, ok
+	return jwt.Claims(c).JWTID()
 }
 
 // RemoveIssuer deletes claim "iss" from c.
-func (c Claims) RemoveIssuer() { c.Del("iss") }
+func (c Claims) RemoveIssuer() {
+	jwt.Claims(c).RemoveIssuer()
+}
 
 // RemoveSubject deletes claim "sub" from c.
-func (c Claims) RemoveSubject() { c.Del("sub") }
+func (c Claims) RemoveSubject() {
+	jwt.Claims(c).RemoveIssuer()
+}
 
 // RemoveAudience deletes claim "aud" from c.
-func (c Claims) RemoveAudience() { c.Del("aud") }
+func (c Claims) RemoveAudience() {
+	jwt.Claims(c).Audience()
+}
 
 // RemoveExpiration deletes claim "exp" from c.
-func (c Claims) RemoveExpiration() { c.Del("exp") }
+func (c Claims) RemoveExpiration() {
+	jwt.Claims(c).RemoveExpiration()
+}
 
 // RemoveNotBefore deletes claim "nbf" from c.
-func (c Claims) RemoveNotBefore() { c.Del("nbf") }
+func (c Claims) RemoveNotBefore() {
+	jwt.Claims(c).NotBefore()
+}
 
 // RemoveIssuedAt deletes claim "iat" from c.
-func (c Claims) RemoveIssuedAt() { c.Del("iat") }
+func (c Claims) RemoveIssuedAt() {
+	jwt.Claims(c).IssuedAt()
+}
 
 // RemoveJWTID deletes claim "jti" from c.
-func (c Claims) RemoveJWTID() { c.Del("jti") }
+func (c Claims) RemoveJWTID() {
+	jwt.Claims(c).RemoveJWTID()
+}
 
 // SetIssuer sets claim "iss" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.1
 func (c Claims) SetIssuer(issuer string) {
-	c.Set("iss", issuer)
+	jwt.Claims(c).SetIssuer(issuer)
 }
 
 // SetSubject sets claim "iss" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.2
 func (c Claims) SetSubject(subject string) {
-	c.Set("sub", subject)
+	jwt.Claims(c).SetSubject(subject)
 }
 
 // SetAudience sets claim "aud" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.3
 func (c Claims) SetAudience(audience ...string) {
-	if len(audience) == 1 {
-		c.Set("aud", audience[0])
-	} else {
-		c.Set("aud", audience)
-	}
+	jwt.Claims(c).SetAudience(audience...)
 }
 
 // SetExpiration sets claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
 func (c Claims) SetExpiration(expiration int64) {
-	c.Set("exp", expiration)
+	jwt.Claims(c).SetExpiration(expiration)
 }
 
 // SetNotBefore sets claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
 func (c Claims) SetNotBefore(notBefore int64) {
-	c.Set("nbf", notBefore)
+	jwt.Claims(c).SetNotBefore(notBefore)
 }
 
 // SetIssuedAt sets claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
 func (c Claims) SetIssuedAt(issuedAt int64) {
-	c.Set("iat", issuedAt)
+	jwt.Claims(c).SetIssuedAt(issuedAt)
 }
 
 // SetJWTID sets claim "jti" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.7
 func (c Claims) SetJWTID(uniqueID string) {
-	c.Set("jti", uniqueID)
+	jwt.Claims(c).SetJWTID(uniqueID)
 }
 
 var (

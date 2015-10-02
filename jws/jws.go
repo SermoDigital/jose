@@ -179,10 +179,12 @@ type generic struct {
 // ParseGeneral, ParseFlat, or ParseCompact.
 // It should only be called if, for whatever reason, you do not
 // know which form the serialized JWT is in.
+//
+// It cannot parse a JWT.
 func Parse(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
 	// Try and unmarshal into a generic struct that'll
 	// hopefully hold either of the two JSON serialization
-	// formats.s
+	// formats.
 	var g generic
 
 	// Not valid JSON. Let's try compact.
@@ -317,7 +319,9 @@ func parseCompact(encoded []byte, jwt bool) (*jws, error) {
 	}
 
 	s := sigHead{
+		Protected: parts[0],
 		protected: p,
+		Signature: parts[2],
 		clean:     true,
 	}
 
@@ -327,6 +331,7 @@ func parseCompact(encoded []byte, jwt bool) (*jws, error) {
 
 	j := jws{
 		payload: &payload{},
+		plcache: parts[1],
 		sb:      []sigHead{s},
 		isJWT:   jwt,
 	}
@@ -373,3 +378,5 @@ func checkHeaders(a, b jose.Header) error {
 	}
 	return nil
 }
+
+var _ JWS = (*jws)(nil)

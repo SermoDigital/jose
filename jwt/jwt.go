@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/SermoDigital/jose/crypto"
 )
@@ -59,23 +60,24 @@ var defaultClaims = []string{
 func (v *Validator) Validate(j JWT) error {
 	if iss, ok := v.Expected.Issuer(); ok &&
 		j.Claims().Get("iss") != iss {
-		return errors.New("TODO 12")
+		fmt.Println(iss, j.Claims().Get("iss"))
+		return errors.New("TODO 1")
 	}
 	if sub, ok := v.Expected.Subject(); ok &&
 		j.Claims().Get("sub") != sub {
-		return errors.New("TODO 12")
+		return errors.New("TODO 2")
 	}
 	if iat, ok := v.Expected.IssuedAt(); ok &&
 		j.Claims().Get("iat") != iat {
-		return errors.New("TODO 12")
+		return errors.New("TODO 3")
 	}
 	if jti, ok := v.Expected.JWTID(); ok &&
 		j.Claims().Get("jti") != jti {
-		return errors.New("TODO 12")
+		return errors.New("TODO 4")
 	}
 	if aud, ok := v.Expected.Audience(); ok &&
 		!eq(j.Claims().Get("aud"), aud) {
-		return errors.New("TODO 12")
+		return errors.New("TODO 5")
 	}
 
 	if v.Fn != nil {
