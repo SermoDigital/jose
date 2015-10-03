@@ -124,6 +124,10 @@ func (c Claims) Audience() (interface{}, bool) {
 }
 
 func stringify(a ...interface{}) ([]string, bool) {
+	if len(a) == 0 {
+		return nil, false
+	}
+
 	s := make([]string, len(a))
 	for i := range a {
 		str, ok := a[i].(string)
