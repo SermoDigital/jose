@@ -116,14 +116,14 @@ func (c Claims) Audience() (interface{}, bool) {
 	switch t := c.Get("aud").(type) {
 	case string, []string:
 		return t, true
-	case []interface{}:
+	case interface{}, []interface{}:
 		return stringify(t)
 	default:
 		return nil, false
 	}
 }
 
-func stringify(a []interface{}) ([]string, bool) {
+func stringify(a ...interface{}) ([]string, bool) {
 	s := make([]string, len(a))
 	for i := range a {
 		str, ok := a[i].(string)
