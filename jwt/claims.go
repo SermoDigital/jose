@@ -116,9 +116,24 @@ func (c Claims) Audience() (interface{}, bool) {
 	switch t := c.Get("aud").(type) {
 	case string, []string:
 		return t, true
-	default:
-		return nil, false
+	case []interface{}:
+		if s, ok := stringify(t); ok {
+			return s, true
+		}
 	}
+	return nil, false
+}
+
+func stringify(a []interface{}) ([]string, bool) {
+	s := make([]string, len(a))
+	for i := range a {
+		str, ok := a[i].(string)
+		if !ok {
+			return nil, false
+		}
+		s[i] = str
+	}
+	return s, true
 }
 
 // Expiration retrieves claim "exp" per its type in
