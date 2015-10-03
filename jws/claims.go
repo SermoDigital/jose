@@ -78,7 +78,7 @@ func (c Claims) Subject() (string, bool) {
 
 // Audience retrieves claim "aud" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.3
-func (c Claims) Audience() (interface{}, bool) {
+func (c Claims) Audience() ([]string, bool) {
 	return jwt.Claims(c).Audience()
 }
 
