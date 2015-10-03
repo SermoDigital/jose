@@ -117,11 +117,10 @@ func (c Claims) Audience() (interface{}, bool) {
 	case string, []string:
 		return t, true
 	case []interface{}:
-		if s, ok := stringify(t); ok {
-			return s, true
-		}
+		return stringify(t)
+	default:
+		return nil, false
 	}
-	return nil, false
 }
 
 func stringify(a []interface{}) ([]string, bool) {
