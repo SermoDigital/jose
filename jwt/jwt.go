@@ -1,10 +1,6 @@
 package jwt
 
-import (
-	"fmt"
-
-	"github.com/SermoDigital/jose/crypto"
-)
+import "github.com/SermoDigital/jose/crypto"
 
 // JWT represents a JWT per RFC 7519.
 // It's described as an interface instead of a physical structure
@@ -59,7 +55,6 @@ var defaultClaims = []string{
 func (v *Validator) Validate(j JWT) error {
 	if iss, ok := v.Expected.Issuer(); ok &&
 		j.Claims().Get("iss") != iss {
-		fmt.Println(iss, j.Claims().Get("iss"))
 		return ErrInvalidISSClaim
 	}
 	if sub, ok := v.Expected.Subject(); ok &&

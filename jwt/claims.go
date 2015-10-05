@@ -27,8 +27,8 @@ func (c Claims) Validate(now, expLeeway, nbfLeeway float64) error {
 	return nil
 }
 
-func within(cur, delta, max float64) bool {
-	return cur+delta < max || cur-delta < max
+func within(val, delta, max float64) bool {
+	return val > max+delta || val > max-delta
 }
 
 // Get retrieves the value corresponding with key from the Claims.
