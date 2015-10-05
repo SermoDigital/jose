@@ -10,6 +10,7 @@ import (
 // NewJWT creates a new JWT with the given claims.
 func NewJWT(claims Claims, method crypto.SigningMethod) jwt.JWT {
 	j := New(claims, method).(*jws)
+	j.sb[0].protected.Set("typ", "JWT")
 	j.isJWT = true
 	return j
 }
