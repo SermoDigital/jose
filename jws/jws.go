@@ -3,6 +3,8 @@ package jws
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"strings"
 
 	"github.com/SermoDigital/jose"
 	"github.com/SermoDigital/jose/crypto"
@@ -302,7 +304,7 @@ func ParseCompact(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
 	return parseCompact(encoded, false)
 }
 
-func parseCompact(encoded []byte, jwt bool) (*jws, error) {
+func parseCompact(encoded []byte, jwt bool, u ...json.Unmarshaler) (*jws, error) {
 
 	// This section loosely follows
 	// https://tools.ietf.org/html/rfc7519#section-7.2
@@ -329,8 +331,13 @@ func parseCompact(encoded []byte, jwt bool) (*jws, error) {
 		return nil, err
 	}
 
+	var pl payload
+	if len(u) > 0 {
+		pl.u = u[0]
+	}
+
 	j := jws{
-		payload: &payload{},
+		payload: &pl,
 		plcache: parts[1],
 		sb:      []sigHead{s},
 		isJWT:   jwt,
@@ -352,6 +359,79 @@ func parseCompact(encoded []byte, jwt bool) (*jws, error) {
 		return &j, ErrHoldsJWE
 	}
 	return &j, nil
+}
+
+var (
+	// JWSFormKey is the form "key" which should be used inside
+	// ParseFromRequest if the request is a multipart.Form.
+	JWSFormKey = "access_token"
+
+	// MaxMemory is maximum amount of memory which should be used
+	// inside ParseFromRequest while parsing the multipart.Form
+	// if the request is a multipart.Form.
+	MaxMemory int64 = 10e6
+)
+
+// Format specifies which "format" the JWS is in -- Flat, General,
+// or compact. Additionally, constants for JWT/Unknown are added.
+type Format uint8
+
+const (
+	// Unknown format.
+	Unknown Format = iota
+
+	// Flat format.
+	Flat
+
+	// General format.
+	General
+
+	// Compact format.
+	Compact
+)
+
+var parseJumpTable = [^uint8(0)]func([]byte, ...json.Unmarshaler) (JWS, error){
+	Unknown: Parse,
+	Flat:    ParseFlat,
+	General: ParseGeneral,
+	Compact: ParseCompact,
+}
+
+func init() {
+	for i := range parseJumpTable {
+		if parseJumpTable[i] == nil {
+			parseJumpTable[i] = Parse
+		}
+	}
+}
+
+func fromHeader(req *http.Request) ([]byte, bool) {
+	if ah := req.Header.Get("Authorization"); ah != "" && len(ah) > 6 && strings.EqualFold(ah[0:6], "BEARER") {
+		return []byte(ah[:7]), true
+	}
+	return nil, false
+}
+
+func fromForm(req *http.Request) ([]byte, bool) {
+	if err := req.ParseMultipartForm(MaxMemory); err != nil {
+		return nil, false
+	}
+	if tokStr := req.Form.Get(JWSFormKey); tokStr != "" {
+		return []byte(tokStr), true
+	}
+	return nil, false
+}
+
+// ParseFromRequest tries to find the JWS in an http.Request.
+// This method will call ParseMultipartForm if there's no token in the header.
+func ParseFromRequest(req *http.Request, format Format, u ...json.Unmarshaler) (JWS, error) {
+	if b, ok := fromHeader(req); ok {
+		return parseJumpTable[format](b, u...)
+	}
+	if b, ok := fromForm(req); ok {
+		return parseJumpTable[format](b, u...)
+	}
+	return nil, ErrNoTokenInRequest
 }
 
 // IgnoreDupes should be set to true if the internal duplicate header key check

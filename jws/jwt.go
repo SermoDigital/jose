@@ -1,6 +1,7 @@
 package jws
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -31,6 +32,18 @@ func (j *jws) Claims() jwt.Claims {
 		}
 	}
 	return nil
+}
+
+// ParseJWTFromRequest tries to find the JWT in an http.Request.
+// This method will call ParseMultipartForm if there's no token in the header.
+func ParseJWTFromRequest(req *http.Request) (jwt.JWT, error) {
+	if b, ok := fromHeader(req); ok {
+		return ParseJWT(b)
+	}
+	if b, ok := fromForm(req); ok {
+		return ParseJWT(b)
+	}
+	return nil, ErrNoTokenInRequest
 }
 
 // ParseJWT parses a serialized jwt.JWT into a physical jwt.JWT.
