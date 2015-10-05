@@ -38,8 +38,8 @@ type ValidateFunc func(Claims) error
 // Validator represents some of the validation options.
 type Validator struct {
 	Expected Claims       // If non-nil, these are required to match.
-	EXP      int64        // EXPLeeway
-	NBF      int64        // NBFLeeway
+	EXP      float64      // EXPLeeway
+	NBF      float64      // NBFLeeway
 	Fn       ValidateFunc // See ValidateFunc for more information.
 
 	_ struct{}
@@ -114,21 +114,21 @@ func (v *Validator) SetAudience(aud string) {
 
 // SetExpiration sets the "exp" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (v *Validator) SetExpiration(exp int64) {
+func (v *Validator) SetExpiration(exp float64) {
 	v.expect()
 	v.Expected.Set("exp", exp)
 }
 
 // SetNotBefore sets the "nbf" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (v *Validator) SetNotBefore(nbf int64) {
+func (v *Validator) SetNotBefore(nbf float64) {
 	v.expect()
 	v.Expected.Set("nbf", nbf)
 }
 
 // SetIssuedAt sets the "iat" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (v *Validator) SetIssuedAt(iat int64) {
+func (v *Validator) SetIssuedAt(iat float64) {
 	v.expect()
 	v.Expected.Set("iat", iat)
 }

@@ -61,7 +61,7 @@ func TestJWTValidator(t *testing.T) {
 		t.Error(err)
 	}
 
-	d := time.Now().Add(1 * time.Hour).Unix()
+	d := float64(time.Now().Add(1 * time.Hour).Unix())
 	fn := func(c Claims) error {
 		if c.Get("name") != "Eric" &&
 			c.Get("admin") != true &&

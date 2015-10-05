@@ -67,7 +67,7 @@ func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Valida
 			if err := v1.Validate(j); err != nil {
 				return err
 			}
-			return jwt.Claims(c).Validate(time.Now().Unix(), v1.EXP, v1.NBF)
+			return jwt.Claims(c).Validate(float64(time.Now().Unix()), v1.EXP, v1.NBF)
 		}
 	}
 	return ErrIsNotJWT
@@ -85,7 +85,7 @@ func Conv(fn func(Claims) error) jwt.ValidateFunc {
 
 // NewValidator returns a pointer to a jwt.Validator structure containing
 // the info to be used in the validation of a JWT.
-func NewValidator(c Claims, exp, nbf int64, fn func(Claims) error) *jwt.Validator {
+func NewValidator(c Claims, exp, nbf float64, fn func(Claims) error) *jwt.Validator {
 	return &jwt.Validator{
 		Expected: jwt.Claims(c),
 		EXP:      exp,

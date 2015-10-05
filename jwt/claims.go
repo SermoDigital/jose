@@ -12,7 +12,7 @@ type Claims map[string]interface{}
 
 // Validate validates the Claims per the claims found in
 // https://tools.ietf.org/html/rfc7519#section-4.1
-func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
+func (c Claims) Validate(now, expLeeway, nbfLeeway float64) error {
 	if exp, ok := c.Expiration(); ok {
 		if !within(exp, expLeeway, now) {
 			return ErrTokenIsExpired
@@ -27,7 +27,7 @@ func (c Claims) Validate(now, expLeeway, nbfLeeway int64) error {
 	return nil
 }
 
-func within(cur, delta, max int64) bool {
+func within(cur, delta, max float64) bool {
 	return cur+delta < max || cur-delta < max
 }
 
@@ -142,22 +142,22 @@ func stringify(a ...interface{}) ([]string, bool) {
 
 // Expiration retrieves claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) Expiration() (int64, bool) {
-	v, ok := c.Get("exp").(int64)
+func (c Claims) Expiration() (float64, bool) {
+	v, ok := c.Get("exp").(float64)
 	return v, ok
 }
 
 // NotBefore retrieves claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) NotBefore() (int64, bool) {
-	v, ok := c.Get("nbf").(int64)
+func (c Claims) NotBefore() (float64, bool) {
+	v, ok := c.Get("nbf").(float64)
 	return v, ok
 }
 
 // IssuedAt retrieves claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) IssuedAt() (int64, bool) {
-	v, ok := c.Get("iat").(int64)
+func (c Claims) IssuedAt() (float64, bool) {
+	v, ok := c.Get("iat").(float64)
 	return v, ok
 }
 
@@ -213,19 +213,19 @@ func (c Claims) SetAudience(audience ...string) {
 
 // SetExpiration sets claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) SetExpiration(expiration int64) {
+func (c Claims) SetExpiration(expiration float64) {
 	c.Set("exp", expiration)
 }
 
 // SetNotBefore sets claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) SetNotBefore(notBefore int64) {
+func (c Claims) SetNotBefore(notBefore float64) {
 	c.Set("nbf", notBefore)
 }
 
 // SetIssuedAt sets claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) SetIssuedAt(issuedAt int64) {
+func (c Claims) SetIssuedAt(issuedAt float64) {
 	c.Set("iat", issuedAt)
 }
 
