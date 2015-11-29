@@ -390,7 +390,7 @@ const (
 	Compact
 )
 
-var parseJumpTable = [^uint8(0)]func([]byte, ...json.Unmarshaler) (JWS, error){
+var parseJumpTable = [^Format(0)]func([]byte, ...json.Unmarshaler) (JWS, error){
 	Unknown: Parse,
 	Flat:    ParseFlat,
 	General: ParseGeneral,
