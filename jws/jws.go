@@ -407,7 +407,7 @@ func init() {
 
 func fromHeader(req *http.Request) ([]byte, bool) {
 	if ah := req.Header.Get("Authorization"); ah != "" && len(ah) > 6 && strings.EqualFold(ah[0:6], "BEARER") {
-		return []byte(ah[:7]), true
+		return []byte(ah[7:]), true
 	}
 	return nil, false
 }
