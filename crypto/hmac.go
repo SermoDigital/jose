@@ -50,7 +50,8 @@ func (m *SigningMethodHMAC) Verify(raw []byte, signature Signature, key interfac
 		return ErrInvalidKey
 	}
 	hasher := hmac.New(m.Hash.New, keyBytes)
-	if hmac.Equal(signature, hasher.Sum(raw)) {
+	hasher.Write(raw)
+	if hmac.Equal(signature, hasher.Sum(nil)) {
 		return nil
 	}
 	return ErrSignatureInvalid
@@ -64,7 +65,8 @@ func (m *SigningMethodHMAC) Sign(data []byte, key interface{}) (Signature, error
 		return nil, ErrInvalidKey
 	}
 	hasher := hmac.New(m.Hash.New, keyBytes)
-	return Signature(hasher.Sum(data)), nil
+	hasher.Write(data)
+	return Signature(hasher.Sum(nil)), nil
 }
 
 // Hasher implements the SigningMethod interface.
