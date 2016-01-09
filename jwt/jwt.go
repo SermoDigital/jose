@@ -69,9 +69,11 @@ func (v *Validator) Validate(j JWT) error {
 		j.Claims().Get("jti") != jti {
 		return ErrInvalidJTIClaim
 	}
-	if aud, ok := v.Expected.Audience(); ok &&
-		!eq(j.Claims().Get("aud"), aud) {
-		return ErrInvalidAUDClaim
+
+	if aud, ok := v.Expected.Audience(); ok {
+		if aud2, _ := j.Claims().Audience(); !eq(aud, aud2){
+			return ErrInvalidAUDClaim
+		}
 	}
 
 	if v.Fn != nil {
