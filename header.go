@@ -67,7 +67,7 @@ func (h *Header) UnmarshalJSON(b []byte) error {
 	if err = json.Unmarshal(b, &tmp); err != nil {
 		return err
 	}
-	*h = Header(tmp)
+	*h = tmp
 	return nil
 }
 
@@ -121,7 +121,9 @@ func (p Protected) Base64() ([]byte, error) {
 // UnmarshalJSON implements json.Unmarshaler for Protected.
 func (p *Protected) UnmarshalJSON(b []byte) error {
 	var h Header
-	h.UnmarshalJSON(b)
+	if err := h.UnmarshalJSON(b); err != nil {
+		return err
+	}
 	*p = Protected(h)
 	return nil
 }
