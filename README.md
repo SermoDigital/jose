@@ -31,5 +31,5 @@ The docs can be found at [godoc.org] [docs], as usual.
 [docs]:    https://godoc.org/github.com/SermoDigital/jose
 [license]: https://github.com/SermoDigital/jose/blob/master/LICENSE.md
 [jws]: https://tools.ietf.org/html/rfc7515
-[jwe]: https://tools.ietf.org/html/rfc7515
+[jwe]: https://tools.ietf.org/html/rfc7516
 [jwt]: https://tools.ietf.org/html/rfc7519
