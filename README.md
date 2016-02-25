@@ -1,5 +1,6 @@
 JOSE
 ============
+[![Build Status](https://travis-ci.org/SermoDigital/jose.svg?branch=master)](https://travis-ci.org/SermoDigital/jose)
 
 JOSE is a comprehensive set of JWT, JWS, and JWE libraries.
 
