@@ -301,7 +301,7 @@ func (g *generic) parseFlat(u ...json.Unmarshaler) (JWS, error) {
 //
 // For information on the json.Unmarshaler parameter, see Parse.
 func ParseCompact(encoded []byte, u ...json.Unmarshaler) (JWS, error) {
-	return parseCompact(encoded, false)
+	return parseCompact(encoded, false, u...)
 }
 
 func parseCompact(encoded []byte, jwt bool, u ...json.Unmarshaler) (*jws, error) {

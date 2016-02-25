@@ -72,6 +72,22 @@ func TestParseCompact(t *testing.T) {
 	}
 }
 
+func TestParseCompactWithUnmarshaler(t *testing.T) {
+	j := New(easyData, crypto.SigningMethodRS512)
+	b, err := j.Compact(rsaPriv)
+	if err != nil {
+		t.Error(err)
+	}
+	var e easy
+	j2, err := ParseCompact(b, &e)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(easyData, *j2.Payload().(*easy)) {
+		Error(t, easyData, *j2.Payload().(*easy))
+	}
+}
+
 func TestParseGeneral(t *testing.T) {
 	sm := []crypto.SigningMethod{
 		crypto.SigningMethodRS256,
