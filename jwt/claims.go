@@ -118,7 +118,9 @@ func (c Claims) Audience() ([]string, bool) {
 		return []string{t}, true
 	case []string:
 		return t, true
-	case interface{}, []interface{}:
+	case []interface{}:
+		return stringify(t...)
+	case interface{}:
 		return stringify(t)
 	}
 	return nil, false
