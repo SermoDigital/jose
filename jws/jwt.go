@@ -2,7 +2,6 @@ package jws
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jwt"
@@ -66,7 +65,7 @@ func ParseJWT(encoded []byte) (jwt.JWT, error) {
 // IsJWT returns true if the JWS is a JWT.
 func (j *jws) IsJWT() bool { return j.isJWT }
 
-func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Validator) error {
+func (j *jws) Validate(now float64, key interface{}, m crypto.SigningMethod, v ...*jwt.Validator) error {
 	if j.isJWT {
 		if err := j.Verify(key, m); err != nil {
 			return err
@@ -80,7 +79,7 @@ func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Valida
 			if err := v1.Validate(j); err != nil {
 				return err
 			}
-			return jwt.Claims(c).Validate(float64(time.Now().Unix()), v1.EXP, v1.NBF)
+			return jwt.Claims(c).Validate(now, v1.EXP, v1.NBF)
 		}
 	}
 	return ErrIsNotJWT

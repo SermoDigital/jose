@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/SermoDigital/jose/crypto"
 )
@@ -117,4 +118,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func now() float64 {
+	return float64(time.Now().Unix())
 }

@@ -14,7 +14,7 @@ type JWT interface {
 	// Validate returns an error describing any issues found while
 	// validating the JWT. For info on the fn parameter, see the
 	// comment on ValidateFunc.
-	Validate(key interface{}, method crypto.SigningMethod, v ...*Validator) error
+	Validate(now float64, key interface{}, method crypto.SigningMethod, v ...*Validator) error
 
 	// Serialize serializes the JWT into its on-the-wire
 	// representation.
@@ -71,7 +71,7 @@ func (v *Validator) Validate(j JWT) error {
 	}
 
 	if aud, ok := v.Expected.Audience(); ok {
-		if aud2, _ := j.Claims().Audience(); !eq(aud, aud2){
+		if aud2, _ := j.Claims().Audience(); !eq(aud, aud2) {
 			return ErrInvalidAUDClaim
 		}
 	}
