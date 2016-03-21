@@ -42,7 +42,7 @@ func TestBasicJWT(t *testing.T) {
 		Error(t, claims, w.Claims())
 	}
 
-	if err := w.Validate(rsaPub, crypto.SigningMethodRS512); err != nil {
+	if err := w.Validate(now(), rsaPub, crypto.SigningMethodRS512); err != nil {
 		t.Error(err)
 	}
 }
@@ -71,7 +71,7 @@ func TestJWTValidator(t *testing.T) {
 		return nil
 	}
 	v := NewValidator(Claims{"iss": "example.com"}, d, d, fn)
-	if err := w.Validate(rsaPub, crypto.SigningMethodRS512, v); err != nil {
+	if err := w.Validate(now(), rsaPub, crypto.SigningMethodRS512, v); err != nil {
 		t.Error(err)
 	}
 }
