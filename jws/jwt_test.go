@@ -24,6 +24,37 @@ var claims = Claims{
 	},
 }
 
+func TestRawJWT(t *testing.T){
+    /*  JWT 
+    Header:  
+    {
+     "alg": "HS256",
+     "typ": "JWT"
+    }
+    
+    Payload: 
+    {
+         "scopes": ["test", "test2"]
+    }
+    Key: secret 
+*/
+    bearer := `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZXMiOlsidGVzdCIsInRlc3QyIl19.03T1Fi7AE6GsJW_wdvB1faqoT69UeEBEj0J5RCjLxD4`
+    
+    w, err := ParseJWT([]byte(bearer))
+    if err != nil {
+        t.Error(err)
+    }
+    
+    scopes, ok := w.Claims().Get("scopes").([]string)
+    if !ok {
+        t.Errorf("Could not unmarshal scopes")
+    } else {
+        if scopes[0] != "test" && scopes[1] != "test2" {
+            t.Errorf("Unable to unmarshall scopes")
+        }    
+    }
+}
+
 func TestBasicJWT(t *testing.T) {
 	j := NewJWT(claims, crypto.SigningMethodRS512)
 	b, err := j.Serialize(rsaPriv)
