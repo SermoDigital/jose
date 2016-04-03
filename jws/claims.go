@@ -2,6 +2,7 @@ package jws
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/SermoDigital/jose"
 	"github.com/SermoDigital/jose/jwt"
@@ -84,19 +85,19 @@ func (c Claims) Audience() ([]string, bool) {
 
 // Expiration retrieves claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) Expiration() (float64, bool) {
+func (c Claims) Expiration() (time.Time, bool) {
 	return jwt.Claims(c).Expiration()
 }
 
 // NotBefore retrieves claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) NotBefore() (float64, bool) {
+func (c Claims) NotBefore() (time.Time, bool) {
 	return jwt.Claims(c).NotBefore()
 }
 
 // IssuedAt retrieves claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) IssuedAt() (float64, bool) {
+func (c Claims) IssuedAt() (time.Time, bool) {
 	return jwt.Claims(c).IssuedAt()
 }
 
@@ -161,19 +162,19 @@ func (c Claims) SetAudience(audience ...string) {
 
 // SetExpiration sets claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) SetExpiration(expiration float64) {
+func (c Claims) SetExpiration(expiration time.Time) {
 	jwt.Claims(c).SetExpiration(expiration)
 }
 
 // SetNotBefore sets claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) SetNotBefore(notBefore float64) {
+func (c Claims) SetNotBefore(notBefore time.Time) {
 	jwt.Claims(c).SetNotBefore(notBefore)
 }
 
 // SetIssuedAt sets claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) SetIssuedAt(issuedAt float64) {
+func (c Claims) SetIssuedAt(issuedAt time.Time) {
 	jwt.Claims(c).SetIssuedAt(issuedAt)
 }
 
