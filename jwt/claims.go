@@ -14,21 +14,17 @@ type Claims map[string]interface{}
 // https://tools.ietf.org/html/rfc7519#section-4.1
 func (c Claims) Validate(now, expLeeway, nbfLeeway float64) error {
 	if exp, ok := c.Expiration(); ok {
-		if !within(exp, expLeeway, now) {
+		if now > exp+expLeeway {
 			return ErrTokenIsExpired
 		}
 	}
 
 	if nbf, ok := c.NotBefore(); ok {
-		if !within(nbf, nbfLeeway, now) {
+		if now <= nbf-nbfLeeway {
 			return ErrTokenNotYetValid
 		}
 	}
 	return nil
-}
-
-func within(val, delta, max float64) bool {
-	return val > max+delta || val > max-delta
 }
 
 // Get retrieves the value corresponding with key from the Claims.
