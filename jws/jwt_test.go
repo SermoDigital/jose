@@ -63,9 +63,16 @@ func TestJWTValidator(t *testing.T) {
 
 	d := float64(time.Now().Add(1 * time.Hour).Unix())
 	fn := func(c Claims) error {
+
+		scopes, ok := c.Get("scopes").([]interface{})
+
+		if !ok {
+			return errors.New("Unexpected scopes type. Expected string")
+		}
+
 		if c.Get("name") != "Eric" &&
 			c.Get("admin") != true &&
-			c.Get("scopes").([]string)[0] != "user.account.info" {
+			scopes[0] != "user.account.info" {
 			return errors.New("invalid")
 		}
 		return nil
