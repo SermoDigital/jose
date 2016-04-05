@@ -2,6 +2,8 @@ package jwt
 
 import (
 	"encoding/json"
+	"reflect"
+	"time"
 
 	"github.com/SermoDigital/jose"
 )
@@ -12,23 +14,19 @@ type Claims map[string]interface{}
 
 // Validate validates the Claims per the claims found in
 // https://tools.ietf.org/html/rfc7519#section-4.1
-func (c Claims) Validate(now, expLeeway, nbfLeeway float64) error {
+func (c Claims) Validate(now time.Time, expLeeway, nbfLeeway time.Duration) error {
 	if exp, ok := c.Expiration(); ok {
-		if !within(exp, expLeeway, now) {
+		if now.After(exp.Add(expLeeway)) {
 			return ErrTokenIsExpired
 		}
 	}
 
 	if nbf, ok := c.NotBefore(); ok {
-		if !within(nbf, nbfLeeway, now) {
+		if !now.After(nbf.Add(-nbfLeeway)) {
 			return ErrTokenNotYetValid
 		}
 	}
 	return nil
-}
-
-func within(val, delta, max float64) bool {
-	return val > max+delta || val > max-delta
 }
 
 // Get retrieves the value corresponding with key from the Claims.
@@ -144,23 +142,20 @@ func stringify(a ...interface{}) ([]string, bool) {
 
 // Expiration retrieves claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) Expiration() (float64, bool) {
-	v, ok := c.Get("exp").(float64)
-	return v, ok
+func (c Claims) Expiration() (time.Time, bool) {
+	return c.GetTime("exp")
 }
 
 // NotBefore retrieves claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) NotBefore() (float64, bool) {
-	v, ok := c.Get("nbf").(float64)
-	return v, ok
+func (c Claims) NotBefore() (time.Time, bool) {
+	return c.GetTime("nbf")
 }
 
 // IssuedAt retrieves claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) IssuedAt() (float64, bool) {
-	v, ok := c.Get("iat").(float64)
-	return v, ok
+func (c Claims) IssuedAt() (time.Time, bool) {
+	return c.GetTime("iat")
 }
 
 // JWTID retrieves claim "jti" per its type in
@@ -215,26 +210,61 @@ func (c Claims) SetAudience(audience ...string) {
 
 // SetExpiration sets claim "exp" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (c Claims) SetExpiration(expiration float64) {
-	c.Set("exp", expiration)
+func (c Claims) SetExpiration(expiration time.Time) {
+	c.SetTime("exp", expiration)
 }
 
 // SetNotBefore sets claim "nbf" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (c Claims) SetNotBefore(notBefore float64) {
-	c.Set("nbf", notBefore)
+func (c Claims) SetNotBefore(notBefore time.Time) {
+	c.SetTime("nbf", notBefore)
 }
 
 // SetIssuedAt sets claim "iat" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (c Claims) SetIssuedAt(issuedAt float64) {
-	c.Set("iat", issuedAt)
+func (c Claims) SetIssuedAt(issuedAt time.Time) {
+	c.SetTime("iat", issuedAt)
 }
 
 // SetJWTID sets claim "jti" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.7
 func (c Claims) SetJWTID(uniqueID string) {
 	c.Set("jti", uniqueID)
+}
+
+// zero pre-allocs the zero-time value
+var zero = time.Time{}
+
+// GetTime returns a UNIX time for the given key.
+//
+// It converts an int, int32, int64, uint, uint32, uint64 or float64 value
+// into a UNIX time (epoch seconds). float32 does not have sufficient
+// precision to store a UNIX time.
+//
+// Numeric values parsed from JSON will always be stored as float64 since
+// Claims is a map[string]interface{}. However, internally the values may be
+// stored directly in the claims map as different types.
+func (c Claims) GetTime(key string) (time.Time, bool) {
+	x := c.Get(key)
+	if x == nil {
+		return zero, false
+	}
+	v := reflect.ValueOf(x)
+	switch v.Kind() {
+	case reflect.Int, reflect.Int32, reflect.Int64:
+		return time.Unix(v.Int(), 0), true
+	case reflect.Uint, reflect.Uint32, reflect.Uint64:
+		return time.Unix(int64(v.Uint()), 0), true
+	case reflect.Float64:
+		return time.Unix(int64(v.Float()), 0), true
+	default:
+		return zero, false
+	}
+}
+
+// SetTime stores a UNIX time for the given key.
+func (c Claims) SetTime(key string, t time.Time) {
+	c.Set(key, t.Unix())
 }
 
 var (
