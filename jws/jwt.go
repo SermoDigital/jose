@@ -64,7 +64,9 @@ func ParseJWT(encoded []byte) (jwt.JWT, error) {
 }
 
 // IsJWT returns true if the JWS is a JWT.
-func (j *jws) IsJWT() bool { return j.isJWT }
+func (j *jws) IsJWT() bool {
+	return j.isJWT
+}
 
 func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Validator) error {
 	if j.isJWT {

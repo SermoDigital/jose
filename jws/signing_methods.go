@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	mu = &sync.RWMutex{}
+	mu sync.RWMutex
 
 	signingMethods = map[string]crypto.SigningMethod{
 		crypto.SigningMethodES256.Alg(): crypto.SigningMethodES256,
@@ -33,7 +33,8 @@ var (
 // RegisterSigningMethod registers the crypto.SigningMethod in the global map.
 // This is typically done inside the caller's init function.
 func RegisterSigningMethod(sm crypto.SigningMethod) {
-	if GetSigningMethod(sm.Alg()) != nil {
+	alg := sm.Alg()
+	if GetSigningMethod(alg) != nil {
 		panic("jose/jws: cannot duplicate signing methods")
 	}
 
@@ -42,7 +43,7 @@ func RegisterSigningMethod(sm crypto.SigningMethod) {
 	}
 
 	mu.Lock()
-	signingMethods[sm.Alg()] = sm
+	signingMethods[alg] = sm
 	mu.Unlock()
 }
 
@@ -54,8 +55,9 @@ func RemoveSigningMethod(sm crypto.SigningMethod) {
 }
 
 // GetSigningMethod retrieves a crypto.SigningMethod from the global map.
-func GetSigningMethod(alg string) crypto.SigningMethod {
+func GetSigningMethod(alg string) (method crypto.SigningMethod) {
 	mu.RLock()
-	defer mu.RUnlock()
-	return signingMethods[alg]
+	method = signingMethods[alg]
+	mu.RUnlock()
+	return method
 }

@@ -100,36 +100,28 @@ func (j *jws) sign(keys ...interface{}) error {
 }
 
 // cache marshals the payload, but only if it's changed since the last cache.
-func (j *jws) cache() error {
+func (j *jws) cache() (err error) {
 	if !j.clean {
-		var err error
 		j.plcache, err = j.payload.Base64()
 		j.clean = err == nil
-		return err
 	}
-	return nil
+	return err
 }
 
 // cache marshals the protected and unprotected headers, but only if
 // they've changed since their last cache.
-func (s *sigHead) cache() error {
+func (s *sigHead) cache() (err error) {
 	if !s.clean {
-		var err error
-
 		s.Protected, err = s.protected.Base64()
 		if err != nil {
-			goto err_return
+			return err
 		}
-
 		s.Unprotected, err = s.unprotected.Base64()
 		if err != nil {
-			goto err_return
+			return err
 		}
-
-	err_return:
-		s.clean = err == nil
-		return err
 	}
+	s.clean = true
 	return nil
 }
 

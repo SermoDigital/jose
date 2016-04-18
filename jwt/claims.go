@@ -61,7 +61,7 @@ func (c Claims) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}(c))
 }
 
-// Base64 implements the Encoder interface.
+// Base64 implements the jose.Encoder interface.
 func (c Claims) Base64() ([]byte, error) {
 	b, err := c.MarshalJSON()
 	if err != nil {

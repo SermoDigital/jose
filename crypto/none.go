@@ -7,24 +7,28 @@ import (
 	"io"
 )
 
-func init() { crypto.RegisterHash(crypto.Hash(0), h) }
+func init() {
+	crypto.RegisterHash(crypto.Hash(0), h)
+}
 
 // h is passed to crypto.RegisterHash.
-func h() hash.Hash { return &f{Writer: nil} }
+func h() hash.Hash {
+	return &f{Writer: nil}
+}
 
 type f struct{ io.Writer }
 
 // Sum helps implement the hash.Hash interface.
-func (f *f) Sum(b []byte) []byte { return nil }
+func (_ *f) Sum(b []byte) []byte { return nil }
 
 // Reset helps implement the hash.Hash interface.
-func (f *f) Reset() {}
+func (_ *f) Reset() {}
 
 // Size helps implement the hash.Hash interface.
-func (f *f) Size() int { return -1 }
+func (_ *f) Size() int { return -1 }
 
 // BlockSize helps implement the hash.Hash interface.
-func (f *f) BlockSize() int { return -1 }
+func (_ *f) BlockSize() int { return -1 }
 
 // Unsecured is the default "none" algorithm.
 var Unsecured = &SigningMethodNone{
@@ -40,20 +44,24 @@ type SigningMethodNone struct {
 }
 
 // Verify helps implement the SigningMethod interface.
-func (m *SigningMethodNone) Verify(_ []byte, _ Signature, _ interface{}) error {
+func (_ *SigningMethodNone) Verify(_ []byte, _ Signature, _ interface{}) error {
 	return nil
 }
 
 // Sign helps implement the SigningMethod interface.
-func (m *SigningMethodNone) Sign(_ []byte, _ interface{}) (Signature, error) {
+func (_ *SigningMethodNone) Sign(_ []byte, _ interface{}) (Signature, error) {
 	return nil, nil
 }
 
 // Alg helps implement the SigningMethod interface.
-func (m *SigningMethodNone) Alg() string { return m.Name }
+func (m *SigningMethodNone) Alg() string {
+	return m.Name
+}
 
 // Hasher helps implement the SigningMethod interface.
-func (m *SigningMethodNone) Hasher() crypto.Hash { return m.Hash }
+func (m *SigningMethodNone) Hasher() crypto.Hash {
+	return m.Hash
+}
 
 // MarshalJSON implements json.Marshaler.
 // See SigningMethodECDSA.MarshalJSON() for information.

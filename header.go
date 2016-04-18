@@ -32,7 +32,7 @@ func (h Header) Has(key string) bool {
 
 // MarshalJSON implements json.Marshaler for Header.
 func (h Header) MarshalJSON() ([]byte, error) {
-	if h == nil || len(h) == 0 {
+	if len(h) == 0 {
 		return nil, nil
 	}
 	b, err := json.Marshal(map[string]interface{}(h))
@@ -52,23 +52,11 @@ func (h *Header) UnmarshalJSON(b []byte) error {
 	if b == nil {
 		return nil
 	}
-
 	b, err := DecodeEscaped(b)
 	if err != nil {
 		return err
 	}
-
-	// Since json.Unmarshal calls UnmarshalJSON,
-	// calling json.Unmarshal on *p would be infinitely recursive
-	// A temp variable is needed because &map[string]interface{}(*p) is
-	// invalid Go.
-
-	tmp := map[string]interface{}(*h)
-	if err = json.Unmarshal(b, &tmp); err != nil {
-		return err
-	}
-	*h = tmp
-	return nil
+	return json.Unmarshal(b, (*map[string]interface{})(h))
 }
 
 // Protected Headers are base64-encoded after they're marshaled into
@@ -131,4 +119,6 @@ func (p *Protected) UnmarshalJSON(b []byte) error {
 var (
 	_ json.Marshaler   = (Protected)(nil)
 	_ json.Unmarshaler = (*Protected)(nil)
+	_ json.Marshaler   = (Header)(nil)
+	_ json.Unmarshaler = (*Header)(nil)
 )
