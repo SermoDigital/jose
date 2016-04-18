@@ -61,7 +61,7 @@ func TestJWTValidator(t *testing.T) {
 		t.Error(err)
 	}
 
-	d := float64(time.Now().Add(1 * time.Hour).Unix())
+	d := time.Hour
 	fn := func(c Claims) error {
 
 		scopes, ok := c.Get("scopes").([]interface{})
