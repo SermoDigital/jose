@@ -1,52 +1,47 @@
 package jwt
 
-import "reflect"
+func verifyPrincipals(pcpls, auds []string) bool {
+	// "Each principal intended to process the JWT MUST
+	// identify itself with a value in the audience claim."
+	// - https://tools.ietf.org/html/rfc7519#section-4.1.3
 
-// eq returns true if the two types are either strings
-// or comparable slices.
-func eq(a, b interface{}) bool {
-	t1 := reflect.TypeOf(a)
-	t2 := reflect.TypeOf(b)
-
-	if t1.Kind() == t2.Kind() {
-		switch t1.Kind() {
-		case reflect.Slice:
-			return eqSlice(a, b)
-		case reflect.String:
-			return reflect.ValueOf(a).String() ==
-				reflect.ValueOf(b).String()
-		}
-	}
-	return false
-}
-
-// eqSlice returns true if the two interfaces are both slices
-// and are equal. For example: https://play.golang.org/p/5VLMwNE3i-
-func eqSlice(a, b interface{}) bool {
-	if a == nil || b == nil {
-		return false
-	}
-
-	v1 := reflect.ValueOf(a)
-	v2 := reflect.ValueOf(b)
-
-	if v1.Kind() != reflect.Slice ||
-		v2.Kind() != reflect.Slice {
-		return false
-	}
-
-	if v1.Len() == v2.Len() && v1.Len() > 0 {
-		for i := 0; i < v1.Len() && i < v2.Len(); i++ {
-			k1 := v1.Index(i)
-			k2 := v2.Index(i)
-			if k1.Type().Comparable() &&
-				k2.Type().Comparable() &&
-				k1.CanInterface() && k2.CanInterface() &&
-				k1.Interface() != k2.Interface() {
-				return false
+	found := -1
+	for i, p := range pcpls {
+		for _, v := range auds {
+			if p == v {
+				found++
+				break
 			}
 		}
-		return true
+		if found != i {
+			return false
+		}
 	}
-	return false
+	return true
+}
+
+// ValidAudience returns true iff:
+// 	- a and b are strings and a == b
+// 	- a is string, b is []string and a is in b
+// 	- a is []string, b is []string and all of a is in b
+// 	- a is []string, b is string and len(a) == 1 and a[0] == b
+func ValidAudience(a, b interface{}) bool {
+	s1, ok := a.(string)
+	if ok {
+		if s2, ok := b.(string); ok {
+			return s1 == s2
+		}
+		a2, ok := b.([]string)
+		return ok && verifyPrincipals([]string{s1}, a2)
+	}
+
+	a1, ok := a.([]string)
+	if !ok {
+		return false
+	}
+	if a2, ok := b.([]string); ok {
+		return verifyPrincipals(a1, a2)
+	}
+	s2, ok := b.(string)
+	return ok && len(a1) == 1 && a1[0] == s2
 }

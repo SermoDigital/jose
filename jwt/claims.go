@@ -84,7 +84,7 @@ func (c *Claims) UnmarshalJSON(b []byte) error {
 	// Since json.Unmarshal calls UnmarshalJSON,
 	// calling json.Unmarshal on *p would be infinitely recursive
 	// A temp variable is needed because &map[string]interface{}(*p) is
-	// invalid Go.
+	// invalid Go. (Address of unaddressable object and all that...)
 
 	tmp := map[string]interface{}(*c)
 	if err = json.Unmarshal(b, &tmp); err != nil {
@@ -111,6 +111,8 @@ func (c Claims) Subject() (string, bool) {
 // Audience retrieves claim "aud" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.3
 func (c Claims) Audience() ([]string, bool) {
+	// Audience claim must be stringy. That is, it may be one string
+	// or multiple strings but it should not be anything else. E.g. an int.
 	switch t := c.Get("aud").(type) {
 	case string:
 		return []string{t}, true

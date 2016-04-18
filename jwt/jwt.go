@@ -42,13 +42,7 @@ type Validator struct {
 	NBF      time.Duration // NBFLeeway
 	Fn       ValidateFunc  // See ValidateFunc for more information.
 
-	_ struct{}
-}
-
-var defaultClaims = []string{
-	"iss", "sub", "aud",
-	"exp", "nbf", "iat",
-	"jti",
+	_ struct{} // Require explicitly-named struct fields.
 }
 
 // Validate validates the JWT based on the expected claims in v.
@@ -75,7 +69,8 @@ func (v *Validator) Validate(j JWT) error {
 	}
 
 	if aud, ok := v.Expected.Audience(); ok {
-		if aud2, _ := j.Claims().Audience(); !eq(aud, aud2) {
+		aud2, ok := j.Claims().Audience()
+		if !ok || !ValidAudience(aud, aud2) {
 			return ErrInvalidAUDClaim
 		}
 	}
