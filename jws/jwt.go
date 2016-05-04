@@ -10,7 +10,10 @@ import (
 
 // NewJWT creates a new JWT with the given claims.
 func NewJWT(claims Claims, method crypto.SigningMethod) jwt.JWT {
-	j := New(claims, method).(*jws)
+	j, ok := New(claims, method).(*jws)
+	if !ok {
+		panic("jws.NewJWT: runtime panic: New(...).(*jws) != true")
+	}
 	j.sb[0].protected.Set("typ", "JWT")
 	j.isJWT = true
 	return j
@@ -98,8 +101,7 @@ func Conv(fn func(Claims) error) jwt.ValidateFunc {
 	}
 }
 
-// NewValidator returns a pointer to a jwt.Validator structure containing
-// the info to be used in the validation of a JWT.
+// NewValidator returns a jwt.Validator.
 func NewValidator(c Claims, exp, nbf time.Duration, fn func(Claims) error) *jwt.Validator {
 	return &jwt.Validator{
 		Expected: jwt.Claims(c),
