@@ -101,7 +101,9 @@ func (m *SigningMethodECDSA) sum(b []byte) []byte {
 }
 
 // Hasher implements the Hasher method from SigningMethod.
-func (m *SigningMethodECDSA) Hasher() crypto.Hash { return m.Hash }
+func (m *SigningMethodECDSA) Hasher() crypto.Hash {
+	return m.Hash
+}
 
 // MarshalJSON is in case somebody decides to place SigningMethodECDSA
 // inside the Header, presumably because they (wrongly) decided it was a good

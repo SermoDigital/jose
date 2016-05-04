@@ -10,7 +10,10 @@ import (
 
 // NewJWT creates a new JWT with the given claims.
 func NewJWT(claims Claims, method crypto.SigningMethod) jwt.JWT {
-	j := New(claims, method).(*jws)
+	j, ok := New(claims, method).(*jws)
+	if !ok {
+		panic("jws.NewJWT: runtime panic: New(...).(*jws) != true")
+	}
 	j.sb[0].protected.Set("typ", "JWT")
 	j.isJWT = true
 	return j
@@ -64,7 +67,9 @@ func ParseJWT(encoded []byte) (jwt.JWT, error) {
 }
 
 // IsJWT returns true if the JWS is a JWT.
-func (j *jws) IsJWT() bool { return j.isJWT }
+func (j *jws) IsJWT() bool {
+	return j.isJWT
+}
 
 func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Validator) error {
 	if j.isJWT {
@@ -80,7 +85,7 @@ func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Valida
 			if err := v1.Validate(j); err != nil {
 				return err
 			}
-			return jwt.Claims(c).Validate(float64(time.Now().Unix()), v1.EXP, v1.NBF)
+			return jwt.Claims(c).Validate(time.Now(), v1.EXP, v1.NBF)
 		}
 	}
 	return ErrIsNotJWT
@@ -96,9 +101,8 @@ func Conv(fn func(Claims) error) jwt.ValidateFunc {
 	}
 }
 
-// NewValidator returns a pointer to a jwt.Validator structure containing
-// the info to be used in the validation of a JWT.
-func NewValidator(c Claims, exp, nbf float64, fn func(Claims) error) *jwt.Validator {
+// NewValidator returns a jwt.Validator.
+func NewValidator(c Claims, exp, nbf time.Duration, fn func(Claims) error) *jwt.Validator {
 	return &jwt.Validator{
 		Expected: jwt.Claims(c),
 		EXP:      exp,

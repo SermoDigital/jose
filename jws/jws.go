@@ -16,17 +16,21 @@ type JWS interface {
 	Payload() interface{}
 
 	// SetPayload sets the payload with the given value.
-	SetPayload(interface{})
+	SetPayload(p interface{})
 
 	// Protected returns the JWS' Protected Header.
+	Protected() jose.Protected
+
+	// ProtectedAt returns the JWS' Protected Header.
 	// i represents the index of the Protected Header.
-	// Left empty, it defaults to 0.
-	Protected(...int) jose.Protected
+	ProtectedAt(i int) jose.Protected
 
 	// Header returns the JWS' unprotected Header.
-	// i represents the index of the Protected Header.
-	// Left empty, it defaults to 0.
-	Header(...int) jose.Header
+	Header() jose.Header
+
+	// HeaderAt returns the JWS' unprotected Header.
+	// i represents the index of the unprotected Header.
+	HeaderAt(i int) jose.Header
 
 	// Verify validates the current JWS' signature as-is. Refer to
 	// ValidateMulti for more information.
@@ -74,29 +78,36 @@ type jws struct {
 }
 
 // Payload returns the jws' payload.
-func (j *jws) Payload() interface{} { return j.payload.v }
+func (j *jws) Payload() interface{} {
+	return j.payload.v
+}
 
 // SetPayload sets the jws' raw, unexported payload.
-func (j *jws) SetPayload(val interface{}) { j.payload.v = val }
+func (j *jws) SetPayload(val interface{}) {
+	j.payload.v = val
+}
+
+// Protected returns the JWS' Protected Header.
+func (j *jws) Protected() jose.Protected {
+	return j.sb[0].protected
+}
 
 // Protected returns the JWS' Protected Header.
 // i represents the index of the Protected Header.
 // Left empty, it defaults to 0.
-func (j *jws) Protected(i ...int) jose.Protected {
-	if len(i) == 0 {
-		return j.sb[0].protected
-	}
-	return j.sb[i[0]].protected
+func (j *jws) ProtectedAt(i int) jose.Protected {
+	return j.sb[i].protected
 }
 
 // Header returns the JWS' unprotected Header.
-// i represents the index of the Protected Header.
-// Left empty, it defaults to 0.
-func (j *jws) Header(i ...int) jose.Header {
-	if len(i) == 0 {
-		return j.sb[0].unprotected
-	}
-	return j.sb[i[0]].unprotected
+func (j *jws) Header() jose.Header {
+	return j.sb[0].unprotected
+}
+
+// HeaderAt returns the JWS' unprotected Header.
+// |i| is the index of the unprotected Header.
+func (j *jws) HeaderAt(i int) jose.Header {
+	return j.sb[i].unprotected
 }
 
 // sigHead represents the 'signatures' member of the jws' "general"
@@ -121,10 +132,7 @@ func (s *sigHead) unmarshal() error {
 	if err := s.protected.UnmarshalJSON(s.Protected); err != nil {
 		return err
 	}
-	if err := s.unprotected.UnmarshalJSON(s.Unprotected); err != nil {
-		return err
-	}
-	return nil
+	return s.unprotected.UnmarshalJSON(s.Unprotected)
 }
 
 // New creates a JWS with the provided crypto.SigningMethods.
@@ -155,7 +163,6 @@ func (s *sigHead) assignMethod(p jose.Protected) error {
 	if sm == nil {
 		return ErrNoAlgorithm
 	}
-
 	s.method = sm
 	return nil
 }
@@ -236,9 +243,9 @@ func (g *generic) parseGeneral(u ...json.Unmarshaler) (JWS, error) {
 		if err := g.Signatures[i].assignMethod(g.Signatures[i].protected); err != nil {
 			return nil, err
 		}
-
-		g.clean = true
 	}
+
+	g.clean = len(g.Signatures) != 0
 
 	return &jws{
 		payload: &p,
@@ -390,11 +397,12 @@ const (
 	Compact
 )
 
-var parseJumpTable = [^Format(0)]func([]byte, ...json.Unmarshaler) (JWS, error){
-	Unknown: Parse,
-	Flat:    ParseFlat,
-	General: ParseGeneral,
-	Compact: ParseCompact,
+var parseJumpTable = [...]func([]byte, ...json.Unmarshaler) (JWS, error){
+	Unknown:  Parse,
+	Flat:     ParseFlat,
+	General:  ParseGeneral,
+	Compact:  ParseCompact,
+	1<<8 - 1: Parse, // Max uint8.
 }
 
 func init() {

@@ -27,40 +27,34 @@ func (j *jws) VerifyCallback(fn VerifyCallback, methods []crypto.SigningMethod, 
 	return j.VerifyMulti(keys, methods, o)
 }
 
-// IsMultiError returns true if the given error is type MultiError.
+// IsMultiError returns true if the given error is type *MultiError.
 func IsMultiError(err error) bool {
-	_, ok := err.(MultiError)
+	_, ok := err.(*MultiError)
 	return ok
 }
 
 // MultiError is a slice of errors.
 type MultiError []error
 
-func (m MultiError) sanityCheck() error {
-	if m == nil {
-		return nil
-	}
-	return m
-}
-
 // Errors implements the error interface.
-func (m MultiError) Error() string {
-	s, n := "", 0
-	for _, e := range m {
-		if e != nil {
+func (m *MultiError) Error() string {
+	var s string
+	var n int
+	for _, err := range *m {
+		if err != nil {
 			if n == 0 {
-				s = e.Error()
+				s = err.Error()
 			}
 			n++
 		}
 	}
 	switch n {
 	case 0:
-		return "(0 errors)"
+		return ""
 	case 1:
 		return s
 	case 2:
-		return s + " (and 1 other error)"
+		return s + " and 1 other error"
 	}
 	return fmt.Sprintf("%s (and %d other errors)", s, n-1)
 }
@@ -101,7 +95,7 @@ func (j *jws) VerifyMulti(keys []interface{}, methods []crypto.SigningMethod, o 
 
 	var o2 SigningOpts
 	if o == nil {
-		o = &SigningOpts{}
+		o = new(SigningOpts)
 	}
 
 	var m MultiError
@@ -112,15 +106,20 @@ func (j *jws) VerifyMulti(keys []interface{}, methods []crypto.SigningMethod, o 
 		} else {
 			o2.Inc()
 			if o.Needs(i) {
+				o.ptr++
 				o2.Append(i)
 			}
 		}
 	}
 
-	if err := o.Validate(&o2); err != nil {
-		return err
+	err := o.Validate(&o2)
+	if err != nil {
+		m = append(m, err)
 	}
-	return m.sanityCheck()
+	if len(m) == 0 {
+		return nil
+	}
+	return &m
 }
 
 // SigningOpts is a struct which holds options for validating
@@ -148,30 +147,24 @@ type SigningOpts struct {
 	_ struct{}
 }
 
-// Append appends x to s's Indices member.
+// Append appends x to s' Indices member.
 func (s *SigningOpts) Append(x int) {
 	s.Indices = append(s.Indices, x)
 }
 
-// Needs returns true if x resides inside s's Indices member
-// for the given index. If true, it increments s's internal
-// index. It's used to match two SigningOpts Indices members.
+// Needs returns true if x resides inside s' Indices member
+// for the given index. It's used to match two SigningOpts Indices members.
 func (s *SigningOpts) Needs(x int) bool {
-	if s.ptr < len(s.Indices) &&
-		s.Indices[s.ptr] == x {
-		s.ptr++
-		return true
-	}
-	return false
+	return s.ptr < len(s.Indices) && s.Indices[s.ptr] == x
 }
 
-// Inc increments s's Number member by one.
+// Inc increments s' Number member by one.
 func (s *SigningOpts) Inc() { s.Number++ }
 
 // Validate returns any errors found while validating the
-// provided SigningOpts. The receiver validates the parameter `have`.
+// provided SigningOpts. The receiver validates |have|.
 // It'll return an error if the passed SigningOpts' Number member is less
-// than s's or if the passed SigningOpts' Indices slice isn't equal to s's.
+// than s' or if the passed SigningOpts' Indices slice isn't equal to s'.
 func (s *SigningOpts) Validate(have *SigningOpts) error {
 	if have.Number < s.Number ||
 		(s.Indices != nil &&
@@ -182,10 +175,7 @@ func (s *SigningOpts) Validate(have *SigningOpts) error {
 }
 
 func eq(a, b []int) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil || len(a) != len(b) {
+	if len(a) != len(b) {
 		return false
 	}
 	for i := range a {

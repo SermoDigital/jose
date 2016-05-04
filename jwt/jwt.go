@@ -1,6 +1,10 @@
 package jwt
 
-import "github.com/SermoDigital/jose/crypto"
+import (
+	"time"
+
+	"github.com/SermoDigital/jose/crypto"
+)
 
 // JWT represents a JWT per RFC 7519.
 // It's described as an interface instead of a physical structure
@@ -33,18 +37,12 @@ type ValidateFunc func(Claims) error
 
 // Validator represents some of the validation options.
 type Validator struct {
-	Expected Claims       // If non-nil, these are required to match.
-	EXP      float64      // EXPLeeway
-	NBF      float64      // NBFLeeway
-	Fn       ValidateFunc // See ValidateFunc for more information.
+	Expected Claims        // If non-nil, these are required to match.
+	EXP      time.Duration // EXPLeeway
+	NBF      time.Duration // NBFLeeway
+	Fn       ValidateFunc  // See ValidateFunc for more information.
 
-	_ struct{}
-}
-
-var defaultClaims = []string{
-	"iss", "sub", "aud",
-	"exp", "nbf", "iat",
-	"jti",
+	_ struct{} // Require explicitly-named struct fields.
 }
 
 // Validate validates the JWT based on the expected claims in v.
@@ -71,7 +69,8 @@ func (v *Validator) Validate(j JWT) error {
 	}
 
 	if aud, ok := v.Expected.Audience(); ok {
-		if aud2, _ := j.Claims().Audience(); !eq(aud, aud2){
+		aud2, ok := j.Claims().Audience()
+		if !ok || !ValidAudience(aud, aud2) {
 			return ErrInvalidAUDClaim
 		}
 	}
@@ -111,21 +110,21 @@ func (v *Validator) SetAudience(aud string) {
 
 // SetExpiration sets the "exp" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.4
-func (v *Validator) SetExpiration(exp float64) {
+func (v *Validator) SetExpiration(exp time.Time) {
 	v.expect()
 	v.Expected.Set("exp", exp)
 }
 
 // SetNotBefore sets the "nbf" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.5
-func (v *Validator) SetNotBefore(nbf float64) {
+func (v *Validator) SetNotBefore(nbf time.Time) {
 	v.expect()
 	v.Expected.Set("nbf", nbf)
 }
 
 // SetIssuedAt sets the "iat" claim per
 // https://tools.ietf.org/html/rfc7519#section-4.1.6
-func (v *Validator) SetIssuedAt(iat float64) {
+func (v *Validator) SetIssuedAt(iat time.Time) {
 	v.expect()
 	v.Expected.Set("iat", iat)
 }
