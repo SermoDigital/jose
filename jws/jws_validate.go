@@ -196,7 +196,7 @@ func (j *jws) Verify(key interface{}, method crypto.SigningMethod) error {
 }
 
 func (s *sigHead) verify(pl []byte, key interface{}, method crypto.SigningMethod) error {
-	if s.method != method {
+	if s.method.Alg() != method.Alg() || s.method.Hasher() != method.Hasher() {
 		return ErrMismatchedAlgorithms
 	}
 	return method.Verify(format(s.Protected, pl), s.Signature, key)
