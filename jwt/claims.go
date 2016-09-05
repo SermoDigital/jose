@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"encoding/json"
-	"reflect"
 	"time"
 
 	"github.com/SermoDigital/jose"
@@ -234,33 +233,33 @@ func (c Claims) SetJWTID(uniqueID string) {
 	c.Set("jti", uniqueID)
 }
 
-// zero pre-allocs the zero-time value
-var zero = time.Time{}
-
-// GetTime returns a UNIX time for the given key.
+// GetTime returns a Unix timestamp for the given key.
 //
-// It converts an int, int32, int64, uint, uint32, uint64 or float64 value
-// into a UNIX time (epoch seconds). float32 does not have sufficient
-// precision to store a UNIX time.
+// It converts an int, int32, int64, uint, uint32, uint64 or float64 into a Unix
+// timestamp (epoch seconds). float32 does not have sufficient precision to
+// store a Unix timestamp.
 //
 // Numeric values parsed from JSON will always be stored as float64 since
-// Claims is a map[string]interface{}. However, internally the values may be
-// stored directly in the claims map as different types.
+// Claims is a map[string]interface{}. However, the values may be stored directly
+// in the claims as a different type.
 func (c Claims) GetTime(key string) (time.Time, bool) {
-	x := c.Get(key)
-	if x == nil {
-		return zero, false
-	}
-	v := reflect.ValueOf(x)
-	switch v.Kind() {
-	case reflect.Int, reflect.Int32, reflect.Int64:
-		return time.Unix(v.Int(), 0), true
-	case reflect.Uint, reflect.Uint32, reflect.Uint64:
-		return time.Unix(int64(v.Uint()), 0), true
-	case reflect.Float64:
-		return time.Unix(int64(v.Float()), 0), true
+	switch t := c.Get(key).(type) {
+	case int:
+		return time.Unix(int64(t), 0), true
+	case int32:
+		return time.Unix(int64(t), 0), true
+	case int64:
+		return time.Unix(int64(t), 0), true
+	case uint:
+		return time.Unix(int64(t), 0), true
+	case uint32:
+		return time.Unix(int64(t), 0), true
+	case uint64:
+		return time.Unix(int64(t), 0), true
+	case float64:
+		return time.Unix(int64(t), 0), true
 	default:
-		return zero, false
+		return time.Time{}, false
 	}
 }
 

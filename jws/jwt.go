@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/SermoDigital/jose"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jwt"
 )
@@ -85,7 +86,7 @@ func (j *jws) Validate(key interface{}, m crypto.SigningMethod, v ...*jwt.Valida
 			if err := v1.Validate(j); err != nil {
 				return err
 			}
-			return jwt.Claims(c).Validate(time.Now(), v1.EXP, v1.NBF)
+			return jwt.Claims(c).Validate(jose.Now(), v1.EXP, v1.NBF)
 		}
 	}
 	return ErrIsNotJWT
