@@ -42,7 +42,7 @@ func (m *SigningMethodRSA) Alg() string { return m.Name }
 // For this signing method, must be an *rsa.PublicKey.
 func (m *SigningMethodRSA) Verify(raw []byte, sig Signature, key interface{}) error {
 	rsaKey, ok := key.(*rsa.PublicKey)
-	if !ok {
+	if !ok || rsaKey == nil {
 		return ErrInvalidKey
 	}
 	return rsa.VerifyPKCS1v15(rsaKey, m.Hash, m.sum(raw), sig)
@@ -52,9 +52,10 @@ func (m *SigningMethodRSA) Verify(raw []byte, sig Signature, key interface{}) er
 // For this signing method, must be an *rsa.PrivateKey structure.
 func (m *SigningMethodRSA) Sign(data []byte, key interface{}) (Signature, error) {
 	rsaKey, ok := key.(*rsa.PrivateKey)
-	if !ok {
+	if !ok || rsaKey == nil {
 		return nil, ErrInvalidKey
 	}
+
 	sigBytes, err := rsa.SignPKCS1v15(rand.Reader, rsaKey, m.Hash, m.sum(data))
 	if err != nil {
 		return nil, err
