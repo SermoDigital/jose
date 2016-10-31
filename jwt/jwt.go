@@ -60,7 +60,7 @@ func (v *Validator) Validate(j JWT) error {
 		return ErrInvalidSUBClaim
 	}
 	if iat, ok := v.Expected.IssuedAt(); ok {
-		if t, ok := j.Claims().GetTime("iat"); t != iat || !ok {
+		if t, ok := j.Claims().GetTime("iat"); !t.Equal(iat) || !ok {
 			return ErrInvalidIATClaim
 		}
 	}
