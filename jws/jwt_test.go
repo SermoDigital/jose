@@ -37,8 +37,8 @@ func TestBasicJWT(t *testing.T) {
 		t.Error(err)
 	}
 
-	if w.Claims().Get("name") != "Eric" &&
-		w.Claims().Get("admin") != true &&
+	if w.Claims().Get("name") != "Eric" ||
+		w.Claims().Get("admin") != true ||
 		w.Claims().Get("scopes").([]string)[0] != "user.account.info" {
 		Error(t, claims, w.Claims())
 	}
@@ -71,8 +71,8 @@ func TestJWTValidator(t *testing.T) {
 			return errors.New("Unexpected scopes type. Expected string")
 		}
 
-		if c.Get("name") != "Eric" &&
-			c.Get("admin") != true &&
+		if c.Get("name") != "Eric" ||
+			c.Get("admin") != true ||
 			scopes[0] != "user.account.info" {
 			return errors.New("invalid")
 		}
