@@ -132,6 +132,38 @@ func TestFromHeader(t *testing.T) {
 	}
 
 	if string(token) != "t" {
-		t.Errorf("fromHeader should return the value set as token in the Auhorization header")
+		t.Errorf("fromHeader should return the value set as token in the Authorization header")
+	}
+
+	header.Set("Authorization", "Bearer, Basic abcdefgh")
+	_, ok = fromHeader(req)
+	if ok {
+		t.Errorf("fromHeader should return !ok when Authorization header contains Basic header but no bearer value")
+	}
+
+	header.Set("Authorization", "Basic abcdefgh, Bearer")
+	_, ok = fromHeader(req)
+	if ok {
+		t.Errorf("fromHeader should return !ok when Authorization header contains Basic header but no bearer value")
+	}
+
+	header.Set("Authorization", "Basic abcdefgh, BEARER token")
+	token, ok = fromHeader(req)
+	if !ok {
+		t.Errorf("fromHeader should return ok when Authorization header contains a value for a token")
+	}
+
+	if string(token) != "token" {
+		t.Errorf("fromHeader should return the value set as token in the Authorization header")
+	}
+
+	header.Set("Authorization", "BEARER token, Basic abcdefgh")
+	token, ok = fromHeader(req)
+	if !ok {
+		t.Errorf("fromHeader should return ok when Authorization header contains a value for a token")
+	}
+
+	if string(token) != "token" {
+		t.Errorf("fromHeader should return the value set as token in the Authorization header")
 	}
 }
