@@ -414,9 +414,14 @@ func init() {
 }
 
 func fromHeader(req *http.Request) ([]byte, bool) {
-	if ah := req.Header.Get("Authorization"); len(ah) > 7 && strings.EqualFold(ah[0:7], "BEARER ") {
-		return []byte(ah[7:]), true
+	if ah := strings.Split(req.Header.Get("Authorization"), ","); len(ah) > 0 {
+		for _, h := range ah {
+			if h = strings.TrimSpace(h); len(h) > 7 && strings.EqualFold(h[0:6], "BEARER") {
+				return []byte(h[7:]), true
+			}
+		}
 	}
+
 	return nil, false
 }
 
