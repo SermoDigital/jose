@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/SermoDigital/jose"
@@ -235,7 +236,7 @@ func (c Claims) SetJWTID(uniqueID string) {
 
 // GetTime returns a Unix timestamp for the given key.
 //
-// It converts an int, int32, int64, uint, uint32, uint64 or float64 into a Unix
+// It converts a sting, int, int32, int64, uint, uint32, uint64 or float64 into a Unix
 // timestamp (epoch seconds). float32 does not have sufficient precision to
 // store a Unix timestamp.
 //
@@ -258,6 +259,13 @@ func (c Claims) GetTime(key string) (time.Time, bool) {
 		return time.Unix(int64(t), 0), true
 	case float64:
 		return time.Unix(int64(t), 0), true
+	case string:
+		i, err := strconv.Atoi(t)
+		if err != nil {
+			return time.Time{}, false
+		} else {
+			return time.Unix(int64(i), 0), true
+		}
 	default:
 		return time.Time{}, false
 	}
