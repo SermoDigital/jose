@@ -236,7 +236,7 @@ func (c Claims) SetJWTID(uniqueID string) {
 
 // GetTime returns a Unix timestamp for the given key.
 //
-// It converts a sting, int, int32, int64, uint, uint32, uint64 or float64 into a Unix
+// It converts a string, int, int32, int64, uint, uint32, uint64 or float64 into a Unix
 // timestamp (epoch seconds). float32 does not have sufficient precision to
 // store a Unix timestamp.
 //
