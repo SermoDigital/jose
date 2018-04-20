@@ -42,7 +42,13 @@ func (p *payload) UnmarshalJSON(b []byte) error {
 		p.v = p.u
 		return err
 	}
-	return json.Unmarshal(b2, &p.v)
+	err = json.Unmarshal(b2, &p.v)
+	if err != nil {
+		var m map[string]interface{} = make(map[string]interface{})
+		m["__rawPayload"] = b2
+		p.v = m
+	}
+	return nil
 }
 
 var (
