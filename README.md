@@ -20,10 +20,10 @@ JWE is currently unimplemented.
 
 ## Documentation
 
-The docs can be found at [godoc.org] [docs], as usual.
+The docs can be found at [godoc.org][docs], as usual.
 
 A gopkg.in mirror can be found at https://gopkg.in/jose.v1, thanks to
-@zia-newversion. (For context, see issue #30.) 
+@zia-newversion. (For context, see issue #30.)
 
 ### [JWS RFC][jws]
 ### [JWE RFC][jwe]
@@ -31,10 +31,10 @@ A gopkg.in mirror can be found at https://gopkg.in/jose.v1, thanks to
 
 ## License
 
-[MIT] [license].
+[MIT License].
 
 [docs]:    https://godoc.org/github.com/SermoDigital/jose
-[license]: https://github.com/SermoDigital/jose/blob/master/LICENSE.md
+[MIT License]: https://github.com/SermoDigital/jose/blob/master/LICENSE.md
 [jws]: https://tools.ietf.org/html/rfc7515
 [jwe]: https://tools.ietf.org/html/rfc7516
 [jwt]: https://tools.ietf.org/html/rfc7519
