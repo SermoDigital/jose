@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	c "github.com/SermoDigital/jose/crypto"
+	c "github.com/briankassouf/jose/crypto"
 )
 
 func init() { crypto.RegisterHash(crypto.Hash(0), HH) }
