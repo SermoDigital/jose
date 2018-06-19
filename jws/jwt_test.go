@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SermoDigital/jose/crypto"
+	"github.com/briankassouf/jose/crypto"
 )
 
 var claims = Claims{

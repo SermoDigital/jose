@@ -3,7 +3,7 @@ package jwt_test
 import (
 	"testing"
 
-	"github.com/SermoDigital/jose/jwt"
+	"github.com/briankassouf/jose/jwt"
 )
 
 func TestValidAudience(t *testing.T) {
