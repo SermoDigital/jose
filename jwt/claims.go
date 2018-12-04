@@ -193,7 +193,7 @@ func (c Claims) SetIssuer(issuer string) {
 	c.Set("iss", issuer)
 }
 
-// SetSubject sets claim "iss" per its type in
+// SetSubject sets claim "sub" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.2
 func (c Claims) SetSubject(subject string) {
 	c.Set("sub", subject)

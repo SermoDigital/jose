@@ -148,7 +148,7 @@ func (c Claims) SetIssuer(issuer string) {
 	jwt.Claims(c).SetIssuer(issuer)
 }
 
-// SetSubject sets claim "iss" per its type in
+// SetSubject sets claim "sub" per its type in
 // https://tools.ietf.org/html/rfc7519#section-4.1.2
 func (c Claims) SetSubject(subject string) {
 	jwt.Claims(c).SetSubject(subject)
