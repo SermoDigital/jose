@@ -13,7 +13,7 @@ func (r rawBase64) MarshalJSON() ([]byte, error) {
 	return buf, nil
 }
 
-// MarshalJSON implements json.Unmarshaler for rawBase64.
+// UnmarshalJSON implements json.Unmarshaler for rawBase64.
 func (r *rawBase64) UnmarshalJSON(b []byte) error {
 	if len(b) > 1 && b[0] == '"' && b[len(b)-1] == '"' {
 		b = b[1 : len(b)-1]
