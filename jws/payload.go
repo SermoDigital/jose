@@ -31,7 +31,7 @@ func (p *payload) Base64() ([]byte, error) {
 	return jose.Base64Encode(b), nil
 }
 
-// MarshalJSON implements json.Unmarshaler for payload.
+// UnmarshalJSON implements json.Unmarshaler for payload.
 func (p *payload) UnmarshalJSON(b []byte) error {
 	b2, err := jose.DecodeEscaped(b)
 	if err != nil {
