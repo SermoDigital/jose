@@ -27,3 +27,5 @@ _testmain.go
 *.tmp
 tags
 
+go.mod
+go.sum
