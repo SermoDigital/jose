@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"encoding/asn1"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -18,6 +17,7 @@ var ErrECDSAVerification = errors.New("crypto/ecdsa: verification error")
 type SigningMethodECDSA struct {
 	Name string
 	Hash crypto.Hash
+	KeySize int
 	_    struct{}
 }
 
@@ -33,18 +33,21 @@ var (
 	SigningMethodES256 = &SigningMethodECDSA{
 		Name: "ES256",
 		Hash: crypto.SHA256,
+		KeySize: 32,
 	}
 
 	// SigningMethodES384 implements ES384.
 	SigningMethodES384 = &SigningMethodECDSA{
 		Name: "ES384",
 		Hash: crypto.SHA384,
+		KeySize: 48,
 	}
 
 	// SigningMethodES512 implements ES512.
 	SigningMethodES512 = &SigningMethodECDSA{
 		Name: "ES512",
 		Hash: crypto.SHA512,
+		KeySize: 66,
 	}
 )
 
@@ -60,14 +63,11 @@ func (m *SigningMethodECDSA) Verify(raw []byte, signature Signature, key interfa
 		return ErrInvalidKey
 	}
 
-	// Unmarshal asn1 ECPoint
-	var ecpoint ECPoint
-	if _, err := asn1.Unmarshal(signature, &ecpoint); err != nil {
-		return err
-	}
+	r := big.NewInt(0).SetBytes(signature[:m.KeySize])
+	s := big.NewInt(0).SetBytes(signature[m.KeySize:])
 
 	// Verify the signature
-	if !ecdsa.Verify(ecdsaKey, m.sum(raw), ecpoint.R, ecpoint.S) {
+	if !ecdsa.Verify(ecdsaKey, m.sum(raw), r, s) {
 		return ErrECDSAVerification
 	}
 	return nil
@@ -87,11 +87,15 @@ func (m *SigningMethodECDSA) Sign(data []byte, key interface{}) (Signature, erro
 		return nil, err
 	}
 
-	signature, err := asn1.Marshal(ECPoint{R: r, S: s})
-	if err != nil {
-		return nil, err
-	}
-	return Signature(signature), nil
+	rBytes := r.Bytes()
+	rBytesPadded := make([]byte, m.KeySize)
+	copy(rBytesPadded[m.KeySize-len(rBytes):], rBytes)
+
+	sBytes := s.Bytes()
+	sBytesPadded := make([]byte, m.KeySize)
+	copy(sBytesPadded[m.KeySize-len(sBytes):], sBytes)
+
+	return append(rBytesPadded, sBytesPadded...), nil
 }
 
 func (m *SigningMethodECDSA) sum(b []byte) []byte {

@@ -19,16 +19,16 @@ func h() hash.Hash {
 type f struct{ io.Writer }
 
 // Sum helps implement the hash.Hash interface.
-func (_ *f) Sum(b []byte) []byte { return nil }
+func (*f) Sum(b []byte) []byte { return nil }
 
 // Reset helps implement the hash.Hash interface.
-func (_ *f) Reset() {}
+func (*f) Reset() {}
 
 // Size helps implement the hash.Hash interface.
-func (_ *f) Size() int { return -1 }
+func (*f) Size() int { return -1 }
 
 // BlockSize helps implement the hash.Hash interface.
-func (_ *f) BlockSize() int { return -1 }
+func (*f) BlockSize() int { return -1 }
 
 // Unsecured is the default "none" algorithm.
 var Unsecured = &SigningMethodNone{
@@ -44,12 +44,12 @@ type SigningMethodNone struct {
 }
 
 // Verify helps implement the SigningMethod interface.
-func (_ *SigningMethodNone) Verify(_ []byte, _ Signature, _ interface{}) error {
+func (*SigningMethodNone) Verify(_ []byte, _ Signature, _ interface{}) error {
 	return nil
 }
 
 // Sign helps implement the SigningMethod interface.
-func (_ *SigningMethodNone) Sign(_ []byte, _ interface{}) (Signature, error) {
+func (*SigningMethodNone) Sign(_ []byte, _ interface{}) (Signature, error) {
 	return nil, nil
 }
 
