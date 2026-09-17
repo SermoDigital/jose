@@ -3,32 +3,7 @@ package crypto
 import (
 	"crypto"
 	"encoding/json"
-	"hash"
-	"io"
 )
-
-func init() {
-	crypto.RegisterHash(crypto.Hash(0), h)
-}
-
-// h is passed to crypto.RegisterHash.
-func h() hash.Hash {
-	return &f{Writer: nil}
-}
-
-type f struct{ io.Writer }
-
-// Sum helps implement the hash.Hash interface.
-func (_ *f) Sum(b []byte) []byte { return nil }
-
-// Reset helps implement the hash.Hash interface.
-func (_ *f) Reset() {}
-
-// Size helps implement the hash.Hash interface.
-func (_ *f) Size() int { return -1 }
-
-// BlockSize helps implement the hash.Hash interface.
-func (_ *f) BlockSize() int { return -1 }
 
 // Unsecured is the default "none" algorithm.
 var Unsecured = &SigningMethodNone{
@@ -39,8 +14,12 @@ var Unsecured = &SigningMethodNone{
 // SigningMethodNone is the default "none" algorithm.
 type SigningMethodNone struct {
 	Name string
+
+	// The zero Hash means "no hash", and must stay unregistered:
+	// crypto.RegisterHash rejects it as of Go 1.27.
 	Hash crypto.Hash
-	_    struct{}
+
+	_ struct{}
 }
 
 // Verify helps implement the SigningMethod interface.
